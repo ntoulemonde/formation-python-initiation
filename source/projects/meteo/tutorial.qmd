@@ -30,11 +30,11 @@ import solutions
 
 L'API de prédiction d'open-meteo prend en entrée les coordonnées géographiques (latitude, longitude) du lieu où seront réalisées les prédictions. On pourrait récupérer manuellement les coordonnées du lieu qui nous intéresse, mais cela limiterait la reproductibilité de nos analyses avec d'autres lieux que celui choisi. On va donc utiliser une seconde API, `Nominatim`, pour obtenir ces coordonnées pour un lieu donné.
 
-Lorsque l'on travaille à partir d'une API, la première étape est toujours de lire sa documentation. C'est elle qui indique à quelle adresse nous devons envoyer nos requêtes, sous quel format, et ce que va nous répondre l'API. Dans notre cas, la docuemntation de `Nominatim` se trouve à [cette adresse](https://nominatim.org/release-docs/develop/api/Overview/). N'hésitez pas à la parcourir rapidement pour évaluer les possibilités de l'API.
+Lorsque l'on travaille à partir d'une API, la première étape est toujours de lire sa documentation. C'est elle qui indique à quelle adresse nous devons envoyer nos requêtes, sous quel format, et ce que va nous répondre l'API. Dans notre cas, la documentation de `Nominatim` se trouve à [cette adresse](https://nominatim.org/release-docs/develop/api/Overview/). N'hésitez pas à la parcourir rapidement pour évaluer les possibilités de l'API.
 
 ### Question 1
 
-La première caractéristique essentielle d'une API est le *endpoint*, c'est à dire l'URL à laquelle on va envoyer des requêtes. Dans notre cas, on va utiliser le *endpoint* `/search` dans la mesure où l'on veut trouver un objet géographique (des coordonnées) à partir d'un nom de localisation. La [page de documentation]([/search](https://nominatim.org/release-docs/develop/api/Search/)) associée à ce *endpoint* nous donne toutes les informations dont nous avons besoin :
+La première caractéristique essentielle d'une API est le *endpoint*, c'est à dire l'URL à laquelle on va envoyer des requêtes. Dans notre cas, on va utiliser le *endpoint* `/search` dans la mesure où l'on veut trouver un objet géographique (des coordonnées) à partir d'un nom de localisation. La [page de documentation](https://nominatim.org/release-docs/develop/api/Search/) associée à ce *endpoint* nous donne toutes les informations dont nous avons besoin :
 
 - le format d'une requête est `https://nominatim.openstreetmap.org/search?<params>` où `<params>` doit être remplacé par les paramètres de la requête, séparés par le symbole `&`
 - dans la section [Structured Query](https://nominatim.org/release-docs/develop/api/Search/#structured-query), on voit que l'API admet comme paramètres `country` (pays) et `city` (ville), que l'on va utiliser pour paramétrer notre requête. 
