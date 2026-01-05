@@ -1,0 +1,20 @@
+[project]
+name = ""
+version = "0.0.1"
+requires-python = ">=3.13"
+dependencies = [
+    "geopandas",
+    "matplotlib",
+    "numpy",
+    "pandas",
+    "pyarrow",
+    "requests",
+    "seaborn",
+    "scikit-learn",
+    "xlrd",
+    "polars>=1.36.1",
+    "tidypolars>=0.3.2",
+]
+
+[tool.uv]
+package = false
