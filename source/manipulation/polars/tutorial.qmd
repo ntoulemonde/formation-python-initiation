@@ -1,62 +1,48 @@
 ::: {.content-visible when-profile="fr"}
 # Traiter des données tabulaires avec Polars
 
-L'analyse statistique a généralement pour base des **données tabulaires**, dans lesquelles chaque ligne représente une observation et chaque colonne une variable. Pour traiter ce type de données et y appliquer facilement les méthodes d'analyse de données standards, des objets dédiés ont été conçus : les `DataFrames`. Les utilisateurs de `R` connaissent bien cette structure de données, qui est native à ce langage orienté statistique. En `Python`, langage généraliste, cet objet n'existe pas nativement. Heureusement, une librairie très complete et bien pratique, pensée comme une surcouche à `NumPy`, introduit en `Python` l'objet `DataFrame` et permet la manipulation et l'analyse de données de manière simple et intuitive : `Pandas`.
+L'analyse statistique a généralement pour base des **données tabulaires**, dans lesquelles chaque ligne représente une observation et chaque colonne une variable. Pour traiter ce type de données et y appliquer facilement les méthodes d'analyse de données standards, des objets dédiés ont été conçus : les `DataFrames`. Les utilisateurs de `R` connaissent bien cette structure de données, qui est native à ce langage orienté statistique. En `Python`, langage généraliste, cet objet n'existe pas nativement.
 
-::: {.callout-note}
-Pandas étant l'élément central de l'éco-système data science en Python, il offre des possibilités de traitement de la donnée quasi-infinies. En plus de ça, il existe généralement de multiples manières de réaliser une même opération en Pandas. En conséquence, ce chapitre est particulièrement long et dense en nouvelles fonctionnalités. L'objectif n'est pas de retenir toutes les méthodes présentées tout au long de ce chapitre, mais plutôt d'avoir une vision générale de ce qu'il est possible de faire afin de pouvoir mobiliser les bons outils dans les projets. En particulier, les exercices de fin de chapitre et les mini-projets de fin de formation seront l'occasion d'appliquer ces nouvelles connaissances à des problématiques concrètes.
-:::
+On commence par importer la librairie `Polars`. L'usage est courant est de lui attribuer l'alias `pl` afin de simplifier les futurs appels aux objets et fonctions du package.
 
-On commence par importer la librairie `Pandas`. L'usage est courant est de lui attribuer l'alias `pd` afin de simplifier les futurs appels aux objets et fonctions du package. On importe également `NumPy` car on va comparer les objets fondamentaux des deux packages.
+Intro, reprendre de <https://ssphub.netlify.app/post/polars/>
+
+
+- [Lien réparé vers le notebook Polars](https://datalab.sspcloud.fr/launcher/ide/jupyter-python?name=Tutoriel%20Polars&version=2.3.28&s3=region-79669f20&init.personalInit=«https%3A%2F%2Fraw.githubusercontent.com%2Fntoulemonde%2Ftest%2Frefs%2Fheads%2Fmain%2Finit.sh»&autoLaunch=true)
+
+
+Polars plus proche de l'univers du tidyverse pour des personnes venant de R.
+beaucoup plus rapide que pandas
+plus jeune (et donc pas (encore?) intégré partout ? panda)
+moins répandu que Pandas
+très strict sur les types des colonnes
+
+
+Parler de :
+- types
+- colonnes sont associées à des string.
+- pas d'index.
+- polars selectors
+- pipe
+- lazy eval
+
+Ressources :
+https://ddotta.github.io/awesome-polars/
+
+tidypolars : https://tidypolars.readthedocs.io/en/latest/
 
 ```{python}
-import pandas as pd
-import numpy as np
+import tidypolars as tp
+df = tp.tibble(name = ['apple', 'banana', 'pear', 'grape'])
+print(df.mutate(x = tp.str_extract(tp.col('name'), 'e')))
 ```
 
-
-
+```{python}
+import polars as pl
+```
 
 
 ## Structures de données
-
-Pour bien comprendre le fonctionnement de `Pandas`, il faut s'intéresser à ses objets fondamentaux. On va donc d'abord étudier les `Series`, dont la concaténation permet de construire un `DataFrame`.
-
-### La `Series`
-
-Une Series est un conteneur de données unidimensionnel pouvant accueillir n'importe quel type de données (entiers, *strings*, objets Python...). Une Series est néanmoins d'un type donné : une Series ne contenant que des entiers sera de type `int`, et une Series contenant des objets de différente nature sera de type `object`. Construisons notre première Series à partir d'une liste pour vérifier ce comportement.
-
-```{python}
-l = [1, "X", 3]
-s = pd.Series(l)
-print(s)
-```
-
-On peut notamment accéder aux données d'une Series par position, comme pour une liste ou un array.
-
-```{python}
-print(s[1])
-```
-
-A priori, on ne voit pas beaucoup de différence entre une Series et un *array* `NumPy` à 1 dimension. Pourtant, il existe une différence de taille qui est la présence d'un index : les observations ont un label associé. Lorsqu'on crée une Series sans rien spécifier, l'index est automatiquement fixé aux entiers de 0 à n-1 (avec n le nombre d'éléments de la Series). Mais il est possible de passer un index spécifique (ex : des dates, des noms de communes, etc.).
-
-```{python}
-s = pd.Series(l, index=["a", "b", "c"])
-print(s)
-```
-
-Ce qui permet d'accéder aux données par label :
-
-```{python}
-s["b"]
-```
-
-Cette différence apparaît secondaire à première vue, mais deviendra essentielle pour la construction du DataFrame. Pour le reste, les Series se comportent de manière très proche des arrays NumPy : les calculs sont vectorisés, on peut directement faire la somme de deux Series, etc. D'ailleurs, on peut très facilement convertir une Series en array via l'attribut `values`. Ce qui, naturellement, fait perdre l'index...
-
-```{python}
-s = pd.Series(l, index=["a", "b", "c"])
-s.values
-```
 
 ### Le `DataFrame`
 
@@ -67,45 +53,31 @@ Fondamentalement, un DataFrame consiste en une collection de Series, alignées p
 Un DataFrame peut être construit de multiples manières. En pratique, on construit généralement un DataFrame directement à partir de fichiers de données tabulaires (ex : CSV, excel), rarement à la main. On illustrera donc seulement la méthode de construction manuelle la plus usuelle : à partir d'un dictionnaire de données.
 
 ```{python}
-df = pd.DataFrame(
+df = pl.DataFrame(
     data = {
-        "var1": [1.3, 5.6, np.nan, np.nan, 0, np.nan],
-        "var2": np.random.randint(-10, 10, 6),
+        "var1": [1.3, 5.6, None, None, 0, None],
         "experiment": ["test", "train", "test", "train", "train", "validation"],
         "date": ["2022-01-01", "2022-01-02", "2022-01-03", "2022-01-04", "2022-01-05", "2022-01-06"],
         "sample": "sample1"
-    }
+    }, strict=False
 )
 
 df
 ```
 
-Un DataFrame Pandas dispose d'un ensemble d'attributs utiles que nous allons découvrir tout au long de ce tutoriel. Pour l'instant, intéressons-nous aux plus basiques : l'index et le nom des colonnes. Par défaut, l'index est initialisé comme pour les Series à la liste des positions des observations. On aurait pu spécifier un index alternatif lors de la construction du DataFrame en spécifiant l'argument `index` de la fonction `pd.DataFrame`.
+from_dicts
+from_dict
 
-```{python}
-df.index
-```
+
+A noter qu'une valeur manquante est indiquée par None en Polars. Elle sera ensuite traduite en type Null interne à Polars.
+
+Un DataFrame Pandas dispose d'un ensemble d'attributs utiles que nous allons découvrir tout au long de ce tutoriel. Pour l'instant, intéressons-nous aux plus basiques : le nom des colonnes.
 
 ```{python}
 df.columns
 ```
 
-Souvent, plutôt que de spécifier un index à la main lors de la construction du DataFrame, on va vouloir utiliser une certaine colonne du DataFrame comme index. On utilise pour cela la méthode `set_index` associée aux DataFrames.
-
-```{python}
-df = df.set_index("date")
-df
-```
-
-L'attribut index a naturellement changé :
-
-```{python}
-df.index
-```
-
-
-
-
+Autres attributs ?
 
 ## Sélectionner des données
 
@@ -157,29 +129,6 @@ selected_columns.shape
 ```
 
 ### Sélectionner des lignes
-
-#### Utilisation de `loc` et `iloc`
-
-Lorsqu'on veut sélectionner des lignes spécifiques dans un DataFrame, on peut se servir des deux principales méthodes : `loc` et `iloc`.
-
-
-- `iloc` permet de sélectionner des lignes et des colonnes par leur position, c'est-à-dire par des indices numériques.
-
-Exemple, sélection des 3 premières lignes :
-```{python}
-df.iloc[0:3, :]
-```
-
-
-- `loc` quant à lui, fonctionne avec des labels. Si les index du DataFrame sont des numéros, ils ressemblent aux positions, mais ce n'est pas forcément le cas. Il est crucial de noter que, contrairement à `iloc`, avec `loc`, l'index de fin est inclus dans la sélection.
-
-```{python}
-df.loc["2022-01-01":"2022-01-03", :]
-```
-
-#### Filtrage des données selon des conditions
-
-En pratique, plutôt que de sélectionner des lignes basées sur des positions ou des labels, on souhaite souvent filtrer un DataFrame selon certaines conditions. Dans ce cas, on se sert principalement de filtres booléens.
 
 
 - **Inégalités** : On peut vouloir garder seulement les lignes qui respectent une certaine condition.
@@ -238,6 +187,8 @@ df_departements = pd.read_csv('data/departement2021.csv')
 df_departements.head()
 ```
 
+Pas possible de faire directement avec un url, pour cela il faut aller chercher le fichier et le lire
+
 Il est également possible d'importer un fichier CSV directement à partir d'une URL. C'est particulièrement pratique lorsque les données sont régulièrement mises à jour sur un site web et que l'on souhaite accéder à la version la plus récente sans avoir à télécharger manuellement le fichier à chaque fois. Prenons l'exemple d'un fichier CSV disponible sur le site de l'INSEE : le fichier des prénoms, issu des données de l'état civil. On note au passage une autre fonctionnalité bien pratique : le fichier CSV est compressé (format `zip`), mais Pandas est capable de le reconnaître et de le décompresser avant de l'importer.
 
 ```{python}
@@ -258,20 +209,6 @@ df_departements_dom = df_departements[df_departements["DEP"].isin(["971", "972",
 df_departements_dom.to_csv('output/departements2021_dom.csv')
 ```
 
-Un des arguments clés de la méthode `to_csv()` est `index`. Par défaut, `index=True`, ce qui signifie que l'index du DataFrame sera également écrit dans le fichier CSV. On peut le vérifier en imprimant les premières lignes de notre fichier CSV : Pandas a ajouté une colonne non-nommée, qui contient l'index des lignes retenues.
-
-```{python}
-with open("output/departements2021_dom.csv") as file_in:
-    for i in range(5):
-        row = next(file_in).strip()
-        print(row)
-```
-
-Dans certains cas, notamment lorsque l'index n'apporte pas d'information utile ou est simplement généré automatiquement par Pandas, on pourrait vouloir l'exclure du fichier exporté. Pour ce faire, on peut définir `index=False`.
-
-```{python}
-df_departements_dom.to_csv('output/departements2021_dom_noindex.csv', index=False)
-```
 
 #### Importer un fichier Parquet
 
@@ -366,13 +303,16 @@ df_departements.sample(n=5)
 
 L'une des premières étapes lors de l'exploration de nouvelles données est de comprendre la structure générale du jeu de données. La méthode `info()` de Pandas offre une vue d'ensemble rapide des données, notamment en termes de types de données, de présence de valeurs manquantes et de mémoire utilisée.
 
+df.glimpse()
+
+Par défaut imprime les 5 premières et dernière lignes quand on fait
+df
+
 ```{python}
 df.info()
 ```
 
 Plusieurs éléments d'information clés peuvent être extraits de ce résultat :
-
-- **index** : le DataFrame a un `RangeIndex`, ce qui signifie que l'index est constitué d'une suite numérique simple. Ici, l'index va de 0 à 5, soit 6 entrées au total.
 
 - **schéma** : la liste des colonnes est affichée avec des informations très utiles sur le schéma des données :
 
