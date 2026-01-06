@@ -25,6 +25,10 @@ Parler de :
 - polars selectors
 - pipe
 - lazy eval
+- unnest
+
+pour aller plus loin :
+- interconnection avec duckDB pour des requêtes en SQL
 
 Ressources :
 https://ddotta.github.io/awesome-polars/
@@ -46,7 +50,7 @@ import polars as pl
 
 ### Le `DataFrame`
 
-Fondamentalement, un DataFrame consiste en une collection de Series, alignées par les index. Cette concaténation construit donc une table de données, dont les Series correspondent aux colonnes, et dont l'index identifie les lignes. La figure suivante ([source](https://www.geeksforgeeks.org/creating-a-pandas-dataframe/)) permet de bien comprendre cette structure de données.
+Fondamentalement, un DataFrame consiste en une collection de Series. Cette concaténation construit donc une table de données, dont les Series correspondent aux colonnes. La figure suivante ([source](https://www.geeksforgeeks.org/creating-a-pandas-dataframe/)) permet de bien comprendre cette structure de données.
 
 ![](img/structure_df.png){fig-align="center" width="800"}
 
@@ -65,13 +69,10 @@ df = pl.DataFrame(
 df
 ```
 
-from_dicts
-from_dict
 
+A noter qu'une valeur manquante est indiquée par `None` en Polars. Elle sera ensuite traduite en type Null interne à Polars.
 
-A noter qu'une valeur manquante est indiquée par None en Polars. Elle sera ensuite traduite en type Null interne à Polars.
-
-Un DataFrame Pandas dispose d'un ensemble d'attributs utiles que nous allons découvrir tout au long de ce tutoriel. Pour l'instant, intéressons-nous aux plus basiques : le nom des colonnes.
+Un DataFrame Polars dispose d'un ensemble d'attributs utiles que nous allons découvrir tout au long de ce tutoriel. Pour l'instant, intéressons-nous aux plus basiques : le nom des colonnes.
 
 ```{python}
 df.columns
@@ -81,39 +82,46 @@ Autres attributs ?
 
 ## Sélectionner des données
 
-Lors de la manipulation des données tabulaires, il est fréquent de vouloir extraire des colonnes spécifiques d'un `DataFrame`. Cette extraction est simple avec `Pandas` grâce à l'utilisation des crochets.
+Lors de la manipulation des données tabulaires, il est fréquent de vouloir extraire des colonnes spécifiques d'un `DataFrame`.
+Cette extraction suit la même logique que le tidyverse avec `Polars`.
+La méthode `select` permet de sélectionner sur les colonnes quand `filter` filtre les lignes.
 
 ### Sélectionner des colonnes
 
-#### Sélectionner une seule colonne
+Que l'on veuille sélectionner une ou deux colonnes en `Polars`, la logique est similaire.
 
 Pour extraire une seule colonne, on peut utiliser la syntaxe suivante :
 
 ```{python}
-selected_column = df["var1"]
+selected_column = df.select("var1")
 selected_column
 ```
 
-L'objet `selected_column` renvoie ici la colonne nommée `var1` du `DataFrame` `df`. Mais de quel type est cet objet ? Pour répondre à cette question, on utilise la fonction `type()` :
+L'objet `selected_column` renvoie ici la colonne nommée `var1` du `DataFrame` `df`. Contrairement à Pandas, ici on ne garde qu'une seule colonne du dataframe, on ne l'extrait pas. L'objet `selected_columns` reste donc un dataframe de 1 colonne, et n'est pas une Polars Series. En effet, si on sélectionnait 2 colonnes, cela serait toujours un dataframe.
+
+::: {.callout-tip}
+Si vous voulez transformer un dataframe en une série Polars, il faut utiliser la méthode `to_series()` ou reprendre la syntaxe de Pandas qui marche aussi en Polars :
 
 ```{python}
-type(selected_column)
-```
+print(f'En passant par select.to_series(), la table \n {df.select('var1').to_series()} \n est de type {type(df.select('var1').to_series())}')
+print(f'En passant par df[var1], la table \n {df['var1']} \n est aussi de type {type(df['var1'])}')
 
-Comme on peut le voir, le résultat est une `Series`, qui est un objet unidimensionnel dans `Pandas`.
+```
+:::
 
 Un autre attribut utile à connaître est `shape`. Il permet de connaître la dimension de l'objet. Pour une `Series`, `shape` retournera un tuple dont le premier élément indique le nombre de lignes.
 ```{python}
-selected_column.shape
+df.shape
 ```
 
 #### Sélectionner plusieurs colonnes
 
-Pour extraire plusieurs colonnes, il suffit de passer une liste des noms des colonnes souhaitées :
+Pour extraire plusieurs colonnes, il suffit de passer une liste des noms des colonnes souhaitées
+ou sans passer par une liste, comme dans le tidyverse.
 
 ```{python}
-selected_columns = df[["var1", "var2", "experiment"]]
-selected_columns
+print(df.select("var1", "experiment"))
+print(df.select(["var1", "experiment"]))
 ```
 
 Cet extrait montre les colonnes `var1`, `var2` et `experiment` du `DataFrame` `df`. Vérifions maintenant son type :
@@ -122,11 +130,7 @@ Cet extrait montre les colonnes `var1`, `var2` et `experiment` du `DataFrame` `d
 type(selected_columns)
 ```
 
-Le résultat est un `DataFrame`, car il s'agit d'un objet bidimensionnel. On peut aussi vérifier sa forme avec l'attribut `shape`. Dans ce cas, le tuple renvoyé par `shape` contiendra deux éléments : le nombre de lignes et le nombre de colonnes.
 
-```{python}
-selected_columns.shape
-```
 
 ### Sélectionner des lignes
 
@@ -163,6 +167,22 @@ En statistique publique, le point de départ n'est généralement pas la génér
 
 ### Importer et exporter des données
 
+Polars est très sensible au type des données, l'import peut donc parfois être un peu long quand il n'arrive pas à déterminer le type de données de la colonne.
+En effet, Polars va traiter chaque colonne comme une série d'un des types qu'il connait.
+Les types de données sont détaillés dans la [documentation de Polars](https://docs.pola.rs/api/python/stable/reference/datatypes.html).
+Ils comprennent principalement:
+
+| Type de données | Type en Polars | Remarques |
+| -- | -- | -- |
+| Caractères | - `pl.String` <br> - `pl.Utf8` | les données catégorielles (`pl.Categorical`) sont encore peu matures dans Polars. <br> Il peut donc mieux valoir les traiter simplement comme des caractères usuels. |
+| Nombres | | |
+|    - entiers | - `pl.Int8` <br> - `pl.Int16` <br> - `pl.Int32` ... | |
+|    - numérique | - `pl.Float16` <br> - `pl.Float32` <br> - `pl.Float64`  | |
+| Temporelles | - `pl.Date` <br> - `pl.Datetime` <br> - `pl.Duration` ... | |
+| Structures imbriquées   | | - les `pl.Struc` très pratique pour lire des formats imbriqués comme des JSON)|
+
+A noter que pour Polars, null et nan sont différents.
+
 #### Importer un fichier CSV
 
 Comme nous l'avons vu dans un précédent TP, le format CSV est l'un des formats les plus courants pour stocker des données tabulaires. Nous avons précédemment utilisé la librairie `csv` pour les manipuler comme des fichiers texte, mais ce n'était pas très pratique. Pour rappel, la syntaxe pour lire un fichier CSV et afficher les premières lignes était la suivante :
@@ -183,22 +203,71 @@ rows[:5]
 Avec Pandas, il suffit d'utiliser la fonction `read_csv()` pour importer le fichier comme un DataFrame, puis la fonction `head()`.
 
 ```{python}
-df_departements = pd.read_csv('data/departement2021.csv')
+df_departements = pl.read_csv('data/departement2021.csv')
 df_departements.head()
 ```
 
 Pas possible de faire directement avec un url, pour cela il faut aller chercher le fichier et le lire
 
-Il est également possible d'importer un fichier CSV directement à partir d'une URL. C'est particulièrement pratique lorsque les données sont régulièrement mises à jour sur un site web et que l'on souhaite accéder à la version la plus récente sans avoir à télécharger manuellement le fichier à chaque fois. Prenons l'exemple d'un fichier CSV disponible sur le site de l'INSEE : le fichier des prénoms, issu des données de l'état civil. On note au passage une autre fonctionnalité bien pratique : le fichier CSV est compressé (format `zip`), mais Pandas est capable de le reconnaître et de le décompresser avant de l'importer.
+Il est également possible d'importer un fichier CSV directement à partir d'une URL. C'est particulièrement pratique lorsque les données sont régulièrement mises à jour sur un site web et que l'on souhaite accéder à la version la plus récente sans avoir à télécharger manuellement le fichier à chaque fois. Prenons l'exemple d'un fichier CSV disponible sur le site de l'INSEE : le fichier des prénoms, issu des données de l'état civil.
+A la différence de Pandas et à la date d'écriture de ce tutoriel, Polars ne dézippe pas encore automatiquement le fichier csv(_cf._ [discussion de cette problématique sur Github](https://github.com/pola-rs/polars/issues/19447)).
+Il faut donc faire les petites étapes avant soi-même pour le moment.
 
 ```{python}
-# Importer un fichier CSV depuis une URL
+# Téléchargement et stockage du nom du fichier
 url = "https://www.insee.fr/fr/statistiques/fichier/2540004/nat2021_csv.zip"
-df_prenoms_url = pd.read_csv(url, sep=";")
-df_prenoms_url.head()
+file_Path = url.split('/')[-1]
+
+response = requests.get(url)
+if response.status_code == 200:
+    with open(file_Path, 'wb') as file:
+        file.write(response.content)
+
+# zipfile permet de dézipper les fichiers
+from zipfile import ZipFile
+
+# on charge le fichier télécharger et extraction dans un dossier temp/
+with ZipFile(file_Path, 'r') as zObject:
+
+    # Extracting all the members of the zip
+    # into a specific location.
+    zObject.extractall(
+        path="temp/")
+
 ```
 
-Lorsqu'on travaille avec des fichiers CSV, il y a de nombreux arguments optionnels disponibles dans la fonction `read_csv()` qui permettent d'ajuster le processus d'importation en fonction des spécificités du fichier. Ces arguments peuvent notamment permettre de définir un délimiteur spécifique (comme ci-dessus pour le fichier des prénoms), de sauter certaines lignes en début de fichier, ou encore de définir les types de données pour chaque colonne, et bien d'autres. Tous ces paramètres et leur utilisation sont détaillés dans la [documentation officielle](https://pandas.pydata.org/docs/reference/api/pandas.read_csv.html).
+For example, here Polars will throw back an error because of data types. It thinks the anais column is an int but then finds a 'XXXX' value
+```{python}
+df_prenoms_url = pl.read_csv('temp/'+os.listdir('temp')[0], separator=";")
+```
+You can set infer_schema=False to cast all columns as string
+
+```{python}
+df_prenoms_url = pl.read_csv('temp/'+os.listdir('temp')[0], separator=";", infer_schema=False)
+df_prenoms_url
+```
+
+You can also tell Polars to treat the `XXXX` modality as null.
+Polars will then infer the types of each columns
+```{python}
+df_prenoms_url = pl.read_csv('temp/'+os.listdir('temp')[0], separator=";", null_values=['XXXX'])
+df_prenoms_url
+```
+
+```{python}
+!rm $file_Path
+!rm temp -rf
+```
+
+Lorsqu'on travaille avec des fichiers CSV, il y a de nombreux arguments optionnels disponibles dans la fonction `read_csv()` qui permettent d'ajuster le processus d'importation en fonction des spécificités du fichier. Ces arguments peuvent notamment permettre de définir un délimiteur spécifique (comme ci-dessus pour le fichier des prénoms), de sauter certaines lignes en début de fichier, ou encore de définir les types de données pour chaque colonne, et bien d'autres. Tous ces paramètres et leur utilisation sont détaillés dans la [documentation officielle](https://docs.pola.rs/api/python/stable/reference/api/polars.read_csv.html#polars.read_csv).
+
+#### Importer depuis un dictionnaire
+
+Comme illustré dans la partie JSON, on peut aussi créer un dataFrame Polars à partir d'un dictionnaire.
+Cela est très utile par exemple quand on récupère les données d'une API.
+
+from_dicts
+from_dict
 
 #### Exporter au format CSV
 
