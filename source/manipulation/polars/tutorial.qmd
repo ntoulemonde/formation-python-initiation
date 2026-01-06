@@ -322,11 +322,7 @@ from zipfile import ZipFile
 
 # on charge le fichier télécharger et extraction dans un dossier temp/
 with ZipFile(file_Path, 'r') as zObject:
-
-    # Extracting all the members of the zip
-    # into a specific location.
-    zObject.extractall(
-        path="temp/")
+    zObject.extractall(path="temp/")
 
 ```
 
@@ -364,13 +360,6 @@ Tous ces paramètres et leur utilisation sont détaillés dans la [documentation
 !rm temp -rf
 ```
 
-#### Importer depuis un dictionnaire
-
-Comme illustré dans la partie JSON, on peut aussi créer un dataFrame Polars à partir d'un dictionnaire.
-Cela est très utile par exemple quand on récupère les données d'une API.
-
-from_dicts
-from_dict
 
 #### Exporter au format CSV
 
@@ -456,6 +445,57 @@ df_test_schema_csv = pl.read_csv('output/df_test_schema.csv')
 
 df_test_schema_csv
 ```
+
+#### Importer depuis un dictionnaire
+
+Comme illustré dans le tutoriel [Travailler avec des fichiers CSV et JSON](../csv-json-files/tutorial.qmd), on peut aussi créer un dataFrame Polars à partir d'un dictionnaire.
+Cela sera très utile par exemple quand on récupère les données d'une API (_cf._ cours de
+[Python pour la data-science](https://pythonds.linogaliana.fr/) et la partie sur les API).
+
+Les méthodes `from_dict` et `from_dicts` permettent de créer des DataFrames à partir de dictionnaires.
+
+- `from_dict` prend comme argument un **dictionnaire des colonnes**, de manière similaire à `pl.DataFrame` :
+on va écrire par exemple `pl.from_dict({"a": [1, 2], "b": [3, 4]})`
+- `from_dicts` par contre prend comme argument une **liste des lignes** : on va écrire par exemple `pl.from_dicts([{"a": 1, "b": 4}, {"a": 2, "b": 5}, {"a": 3, "b": 6}])`
+
+```{python}
+import requests
+import json
+
+response = requests.get("https://data.geopf.fr/geocodage/search?q=comedie&type=street")
+```
+Le résultat de la requête est un dictionnaire avec 3 clés, dont la deuxième, 'features', stocke les résultats sous forme d'une liste.
+Pour importer directement ce fichier en Polars, on peut utiliser la méthode from_dict ou from_dicts.
+
+```{python}
+df = pl.from_dicts(json.loads(response.text))
+df.head(2)
+```
+
+On retrouve dans le DataFrame les trois colonnes dont la clé représente le nom de la colonne et la valeur dans le dictionnaire la valeur dans la colonne.
+La première et dernière colonnes sont des valeurs constantes au format `pl.String` et les résultats sont stockés dans la colonne `features`.
+Cette dernière est au format `pl.Struct`, qui fonctionne de manière similaire à un dictionnaire.
+
+On peut facilement récupérer le détail des résultats grâce à la méthode `unnest` :
+
+```{python}
+df.select("features").unnest("features")
+```
+
+#### Autres exports et imports
+
+- Exporter vers un dictionnaire:
+
+De manière similaire, Polars permet d'exporter un DataFrame vers un dictionnaire.
+
+    - La méthode `to_dict` permet d'exporter un DataFrame "en format colonne".
+    L'export sera un seul dictionnaire dont les clés sont les noms des colonnes et
+    les valeurs les listes des valeurs prises par colonne `{'a':[1, 2, 3], 'b': [3, 2, 1]}`.
+    - La méthode `to_dicts`permet d'exporter le DataFrame "en format ligne".
+    L'export sera une liste dont les termes seront les lignes du DataFrame,
+    représentées à chaque fois par un dictionnaire : `[{'a': 1, 'b': 3}, {'a': 2, 'b': 2}, {'a': 3, 'b': 1}]`
+
+
 
 ### Visualiser un échantillon des données
 
