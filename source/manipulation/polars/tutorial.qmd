@@ -479,7 +479,8 @@ Cette dernière est au format `pl.Struct`, qui fonctionne de manière similaire 
 On peut facilement récupérer le détail des résultats grâce à la méthode `unnest` :
 
 ```{python}
-df.select("features").unnest("features")
+df = df.select("features").unnest("features")
+df
 ```
 
 #### Autres exports et imports
@@ -497,14 +498,23 @@ De manière similaire, Polars permet d'exporter un DataFrame vers un dictionnair
 
 - **Depuis/vers Pandas**:
 Polars permet aussi facilement d'exporter et d'importer des DataFrame au format Pandas.
-Cela permet de travailler avec Polars et de convertir un DataFrame en Pandas quand un package n'autorise pas l'import depuis Polars. 
+Cela permet de travailler avec Polars et de convertir un DataFrame en Pandas quand un package n'autorise pas l'import depuis Polars.
 Il suffit d'utiliser la fonction `pl.from_pandas(df)` et la méthode `df.to_pandas()`.
 
 ### Visualiser un échantillon des données
 
-Lorsqu'on travaille avec des jeux de données volumineux, il est souvent utile de visualiser rapidement un échantillon des données pour avoir une idée de leur structure, de leur format ou encore pour détecter d'éventuels problèmes. Pandas offre plusieurs méthodes pour cela.
+Lorsqu'on travaille avec des jeux de données volumineux, il est souvent utile de visualiser rapidement un échantillon
+des données pour avoir une idée de leur structure, de leur format ou encore pour détecter d'éventuels problèmes.
+Polars offre plusieurs méthodes pour cela.
 
-La méthode `head()` permet d'afficher les premières lignes du DataFrame. Par défaut, elle retourne les 5 premières lignes, mais on peut spécifier un autre nombre en argument si nécessaire.
+Par défaut, Polars indique les cinq premières et cinq dernières lignes d'un DataFrame et indique la forme (_shape_).
+
+```{python}
+df_departements
+```
+
+La méthode `head()` permet d'afficher les premières lignes du DataFrame.
+Par défaut, elle retourne les 5 premières lignes, mais on peut spécifier un autre nombre en argument si nécessaire.
 
 ```{python}
 df_departements.head()
@@ -528,26 +538,27 @@ df_departements.sample(n=5)
 
 ### Obtenir une vue d'ensemble des données
 
-L'une des premières étapes lors de l'exploration de nouvelles données est de comprendre la structure générale du jeu de données. La méthode `info()` de Pandas offre une vue d'ensemble rapide des données, notamment en termes de types de données, de présence de valeurs manquantes et de mémoire utilisée.
-
-df.glimpse()
-
-Par défaut imprime les 5 premières et dernière lignes quand on fait
-df
+L'une des premières étapes lors de l'exploration de nouvelles données est de comprendre la structure générale du jeu de données.
+La méthode `glimpse()` de Polars offre une vue d'ensemble rapide des données, notamment en termes de types de données et affiche les données.
 
 ```{python}
-df.info()
+df.glimpse()
 ```
 
 Plusieurs éléments d'information clés peuvent être extraits de ce résultat :
 
+- **Taille de la table** : le nombre de ligne et de colonnes sont indiquées
+
 - **schéma** : la liste des colonnes est affichée avec des informations très utiles sur le schéma des données :
 
-  - **Non-Null Count** : le nombre de valeurs **non-manquantes** (non `nan`) dans la colonne. Si ce nombre est inférieur au nombre total d'entrées (dans notre cas, 6), cela signifie que la colonne contient des valeurs manquantes. Attention à l'ambiguité possible sur "null" : cela signifie bien les valeurs manquantes, pas les valeurs égales à 0. Ainsi, dans notre cas, le nombre de valeurs "non-null" pour la variable `var1` est 3.
+  - **Format** : Le format Polars de données de la colonne, par exemple `<str>`pour un format caractère (ou `pl.String`).
+  Ceka permet de comprendre la nature des informations stockées dans chaque colonne.
 
-  - **Dtype** : Le type de données de la colonne, qui permet de comprendre la nature des informations stockées dans chaque colonne. Par exemple, `float64` (nombres réels), `int32` (nombres entiers), `category` (variable catégorielle), `datetime64[ns]` (information temporelle) et `object` (données textuelles ou mixtes).
+  - **les premières valeurs** : après chaque colonne sont indiquées, à l'horizontale, les premières valeurs de la colonne.
+  Cela permet de mieux comprendre le schéma du DataFrame.
 
-L'utilisation de `info()` est un moyen rapide et efficace d'obtenir une vue d'ensemble d'un DataFrame, d'identifier rapidement les colonnes contenant des valeurs manquantes et de comprendre la structure des données.
+Contrairement à Pandas, cette méthode n'affiche pas les valeurs manquantes.
+Pour cela, il faut utiliser les statistiques descriptives.
 
 ### Calculer des statistiques descriptives
 
