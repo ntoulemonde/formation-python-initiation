@@ -484,7 +484,7 @@ df.select("features").unnest("features")
 
 #### Autres exports et imports
 
-- Exporter vers un dictionnaire:
+- **Exporter vers un dictionnaire**:
 
 De manière similaire, Polars permet d'exporter un DataFrame vers un dictionnaire.
 
@@ -495,7 +495,10 @@ De manière similaire, Polars permet d'exporter un DataFrame vers un dictionnair
     L'export sera une liste dont les termes seront les lignes du DataFrame,
     représentées à chaque fois par un dictionnaire : `[{'a': 1, 'b': 3}, {'a': 2, 'b': 2}, {'a': 3, 'b': 1}]`
 
-
+- **Depuis/vers Pandas**:
+Polars permet aussi facilement d'exporter et d'importer des DataFrame au format Pandas.
+Cela permet de travailler avec Polars et de convertir un DataFrame en Pandas quand un package n'autorise pas l'import depuis Polars. 
+Il suffit d'utiliser la fonction `pl.from_pandas(df)` et la méthode `df.to_pandas()`.
 
 ### Visualiser un échantillon des données
 
