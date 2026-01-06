@@ -33,17 +33,41 @@ pour aller plus loin :
 Ressources :
 https://ddotta.github.io/awesome-polars/
 
-tidypolars : https://tidypolars.readthedocs.io/en/latest/
 
-```{python}
-import tidypolars as tp
-df = tp.tibble(name = ['apple', 'banana', 'pear', 'grape'])
-print(df.mutate(x = tp.str_extract(tp.col('name'), 'e')))
-```
 
+::: {.panel-tabset group="polars_vs_tidypolars"}}
+
+## Polars
 ```{python}
 import polars as pl
 ```
+
+## Tidypolars
+Pour celles et ceux qui veulent utiliser des fonctions pressqu'identiques à celles du tidyverse,
+il y a le package [tidypolars](https://tidypolars.readthedocs.io/en/latest/).
+
+Les noms des fonctions dans tidypolars sont presque tous identiques à ceux du tidyverse:
+- un DataFrame de Polars devient un tibble chez tidypolars;
+- la structure de la création d'un tibble est la même que dans R;
+- les méthodes filter, select de Polars restent les mêmes;
+- la méthode with_columns de Polars devient mutate  ...
+
+Tidypolars reprend ainsi exactement la syntaxe des principales fonctions de dplyr, tidyr, stringr, lubridate, tidyselect directement dans Python!
+La liste complète des fonctions reprises est disponible dans la [documentation](https://tidypolars.readthedocs.io/en/latest/reference.html).
+
+La seule différence notable entre tidypolars et R est liée aux colonnes, qui sont accessibles par pl.col/tp.col dans polars/tidypolars quand dans R leur nom seul suffit.
+
+Pour la simplicité du tutoriel, le tutoriel présente le début avec tidypolars mais ensuite  utilise uniquement Polars.
+Pour plus de détail, allez voir la [documentation](https://tidypolars.readthedocs.io/en/latest/reference.html) !
+
+```{python}
+import polars as pl
+import tidypolars as tp
+
+from tidypolars import col
+```
+
+:::
 
 
 ## Structures de données
@@ -55,6 +79,10 @@ Fondamentalement, un DataFrame consiste en une collection de Series. Cette conca
 ![](img/structure_df.png){fig-align="center" width="800"}
 
 Un DataFrame peut être construit de multiples manières. En pratique, on construit généralement un DataFrame directement à partir de fichiers de données tabulaires (ex : CSV, excel), rarement à la main. On illustrera donc seulement la méthode de construction manuelle la plus usuelle : à partir d'un dictionnaire de données.
+
+::: {.panel-tabset group="polars_vs_tidypolars"}
+
+## Polars
 
 ```{python}
 df = pl.DataFrame(
@@ -68,6 +96,23 @@ df = pl.DataFrame(
 
 df
 ```
+
+## Tidypolars
+
+```{python}
+
+df = tp.tibble(
+    var1 = [1.3, 5.6, None, None, 0, None],
+    experiment = ["test", "train", "test", "train", "train", "validation"],
+    date = ["2022-01-01", "2022-01-02", "2022-01-03", "2022-01-04", "2022-01-05", "2022-01-06"],
+    sample = "sample1"
+)
+
+df
+
+```
+
+:::
 
 
 A noter qu'une valeur manquante est indiquée par `None` en Polars. Elle sera ensuite traduite en type Null interne à Polars.
@@ -310,12 +355,12 @@ df_prenoms_url
 
 Lorsqu'on travaille avec des fichiers CSV, il y a de nombreux arguments optionnels disponibles dans la fonction `read_csv()` qui permettent d'ajuster le processus d'importation en fonction des spécificités du fichier. Ces arguments peuvent notamment permettre de définir un délimiteur spécifique (comme ci-dessus pour le fichier des prénoms), de sauter certaines lignes en début de fichier, ou encore de définir les types de données pour chaque colonne, et bien d'autres. Tous ces paramètres et leur utilisation sont détaillés dans la [documentation officielle](https://docs.pola.rs/api/python/stable/reference/api/polars.read_csv.html#polars.read_csv).
 
-
 ```{python}
 # Pour nettoyer les fichiers
 !rm $file_Path
 !rm temp -rf
 ```
+
 #### Importer depuis un dictionnaire
 
 Comme illustré dans la partie JSON, on peut aussi créer un dataFrame Polars à partir d'un dictionnaire.
