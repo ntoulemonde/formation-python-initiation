@@ -562,21 +562,15 @@ Pour cela, il faut utiliser les statistiques descriptives.
 
 ### Calculer des statistiques descriptives
 
-En complément des informations renvoyées par la méthode `info()`, on peut vouloir obtenir des statistiques descriptives simples afin de visualiser rapidement les distributions des variables. La méthode `describe()` permet d'avoir une vue synthétique de la distribution des données dans chaque colonne.
+En complément des informations renvoyées par la méthode `glimpse()`, on peut vouloir obtenir des
+statistiques descriptives simples afin de visualiser rapidement les distributions des variables.
+La méthode `describe()` permet d'avoir une vue synthétique de la distribution des données dans chaque colonne.
 
 ```{python}
 df.describe()
 ```
 
-Il est à noter que `describe()` ne renvoie des statistiques que pour les colonnes numériques par défaut. Si l'on souhaite inclure des colonnes d'autres types, il est nécessaire de le préciser via l'argument `include`. Par exemple, `df.describe(include='all')` renverra des statistiques pour toutes les colonnes, y compris des métriques comme le nombre unique, la valeur la plus fréquente et la fréquence de la valeur la plus fréquente pour les colonnes non numériques.
-
-```{python}
-df.describe(include='all')
-```
-
 Notons que, là encore, la variable `count` renvoie le nombre de valeurs **non-manquantes** dans chaque variable.
-
-
 
 
 
@@ -584,56 +578,23 @@ Notons que, là encore, la variable `count` renvoie le nombre de valeurs **non-m
 
 ### Transformer les données
 
-Les opérations de transformation sur les données sont essentielles pour façonner, nettoyer et préparer les données en vue de leur analyse. Les transformations peuvent concerner l'ensemble du DataFrame, des colonnes spécifiques ou encore des lignes spécifiques.
-
-#### Transformer un DataFrame
-
-Pour transformer un DataFrame complet (ou un sous-DataFrame), il est possible d'utiliser des fonctions vectorisées, qui permettent d'appliquer rapidement une opération à l'ensemble des éléments du DataFrame. Cela inclut un certain nombre de méthodes disponibles pour les `Series`, mais aussi les fonctions mathématiques de `NumPy`, etc.
-
-Par exemple, passer chaque valeur numérique d'un DataFrame à la puissance 2 :
-
-```{python}
-df = pd.DataFrame(
-    data = {
-        "var1": [1.3, 5.6, np.nan, np.nan, 0, np.nan],
-        "var2": np.random.randint(-10, 10, 6),
-    }
-)
-
-df ** 2
-```
-
-ou les passer en valeur absolue :
-
-```{python}
-np.abs(df)
-```
-
-Certaines méthodes, disponibles pour les `Series`, peuvent aussi être utilisées pour transformer un DataFrame complet. Par exemple, la bien utile méthode [replace()](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.replace.html), qui permet de remplacer toutes les occurences d'une valeur donnée par une autre valeur. Par exemple, supposons que la valeur 0 dans la colonne `var1` indique en fait une erreur de mesure. Il serait préférable de la remplacer par une valeur manquante.
-
-```{python}
-df.replace(0, np.nan)
-```
-
-::: {.callout-warning title="Assignation ou méthodes *in place* (en place) ?"}
-Dans l'exemple précédent, l'application de la méthode [replace()](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.replace.html) ne modifie pas directement le DataFrame. Pour que la modifiction soit persistente, une première possibilité est d'assigner le résultat à un objet :
-
-```{python}
-df = df.replace(0, np.nan)
-```
-
-Une seconde possibilité est, lorsque les méthodes le proposent, d'utiliser l'argument `inplace`. Lorsque `inplace=True`, l'opération est effectuée "en place", et le DataFrame est donc modifié directement.
-
-```{python}
-df.replace(0, np.nan, inplace=True)
-```
-
-En pratique, il est préférable de limiter les opérations `inplace`. Elles ne favorisent pas la reproductibilité des analyses, dans la mesure où la ré-exécution d'une même cellule va donner à chaque fois des résultats différents.
-:::
+Les opérations de transformation sur les données sont essentielles pour façonner, nettoyer et préparer les données en vue de leur analyse.
+Les transformations peuvent concerner l'ensemble du DataFrame, des colonnes spécifiques ou encore des lignes spécifiques.
 
 #### Transformer les colonnes
 
-Dans certains cas, on ne va pas vouloir appliquer les transformations à l'ensemble des données, mais à des variables spécifiques. Les transformations qui sont possibles à l'échelle du DataFrame (fonctions vectorisées, méthodes comme [replace()](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.replace.html), etc.) restent naturellement possibles à l'échelle d'une colonne.
+En équivalent de mutate du tidyverse ou du replace de pandas, Polars utilise with_columns.
+Le fonctionnement est similaire au mutate du tidyverse.
+Il permet ainsi de modifier des valeurs de colonne, d'effectuer des opérations etc.
+
+La structure pl.when(pl.col.foo > 2).then(1).otherwise(1 + pl.col.bar).alias("val")
+
+Deux types d'expression différents :
+- avec alias
+- plus similaire au tidyverse, avec assignation.
+
+Attention, les caractères simple sont assimilés aux valeurs des colonnes.
+Pour insérer un caractère, utiliser pl.lit.
 
 ```{python}
 df = pd.DataFrame(
@@ -671,64 +632,18 @@ df['var2'] = df['var2'].astype(int)
 df.info()
 ```
 
+#### Renommer des colonnes
+
 Une autre opération fréquente est le renommage d'une ou plusieurs colonnes. Pour cela, on peut utiliser la méthode [rename()](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.rename.html), à laquelle on passe un dictionnaire qui contient autant de couples clé-valeur que de variables à renommer, et dans lequel chaque couple clé-valeur est de la forme `'ancien_nom': 'nouveau_nom'`.
 
 ```{python}
 df.rename(columns={'var2': 'age'})
 ```
 
-Enfin, on peut souhaiter supprimer du DataFrame des colonnes qui ne sont pas ou plus utiles à l'analyse. Pour cela, on utilise la méthode [drop()](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.drop.html), à laquelle on passe soit un string (nom d'une colonne si l'on souhaite n'en supprimer qu'une seule) ou une liste de noms de colonne à supprimer.
 
-```{python}
-df.drop(columns=['var1'])
-```
+#### Fonctions complexes
 
-#### Transformer les lignes
-
-En statistiques, on applique généralement des tranformations faisant intervenir une ou plusieurs colonnes. Néanmoins, dans certains cas, il est nécessaire d'appliquer des transformations au niveau des lignes. Pour cela, on peut utiliser la méthode [apply()](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.apply.html) de Pandas, appliquée à l'axe des lignes (`axis=1`). Illustrons son fonctionnement avec un cas simple. Pour cela, on génère d'abord des données.
-
-```{python}
-df = pd.DataFrame(
-    data = {
-        "var1": [1, 5, 9, 13],
-        "var2": [3, 7, 11, 15],
-        "date": ["2022-01-01", "2022-01-02", "2022-01-03", "2022-01-04"],
-    }
-)
-
-df.head()
-```
-
-On applique maintenant la fonction `apply()` au DataFrame afin de calculer une nouvelle variable qui est la somme des deux existantes.
-
-```{python}
-df['sum_row'] = df.apply(lambda row: row['var1'] + row['var2'], axis=1)
-
-df.head()
-```
-
-::: {.callout-tip title="Les fonctions lambda"}
-Une fonction `lambda` est une petite fonction anonyme. Elle peut prendre n'importe quel nombre d'arguments, mais ne peut avoir qu'une seule expression. Dans l'exemple ci-dessus, la fonction `lambda` prend une ligne en argument et renvoie la somme des colonnes `var1` et `var2` pour cette ligne.
-
-Les fonctions `lambda` permettent de définir simplement des fonctions "à la volée", sans devoir leur donner un nom. Dans notre exemple, cela aurait été parfaitement équivalent au code suivant :
-
-```{python}
-def sum_row(row):
-    return row['var1'] + row['var2']
-
-df['sum_row'] = df.apply(sum_row, axis=1)
-```
-
-:::
-
-Bien que `apply()` offre une grande flexibilité, elle n'est pas la méthode la plus efficiente, notamment pour de grands jeux de données. Les opérations vectorisées sont toujours préférables car elles traitent les données en bloc plutôt que ligne par ligne. Dans notre cas, il aurait été bien entendu préférable de créer notre variable en utilisant des opérations sur les colonnes.
-
-```{python}
-df['sum_row_vect'] = df['var1'] + df['var2']
-
-df.head()
-```
-
+map_element
 Néanmoins, on peut se retrouver dans certains (rares) cas où une opération ne peut pas être facilement vectorisée ou où la logique est complexe. Supposons par exemple que l'on souhaite combiner les valeurs de plusieurs colonnes en fonction de certaines conditions.
 
 ```{python}
@@ -837,38 +752,37 @@ Le chaînage de méthodes permet de combiner plusieurs opérations en une seule 
 Cela favorise également un style de programmation fonctionnel où les données passent à travers une chaîne de transformations de manière fluide.
 :::
 
-#### Effets sur l'index
-
-Il est intéressant de noter les effets du processus d'agrégation sur l'index du DataFrame. Le dernier exemple ci-dessus l'illustre bien : les groupes, i.e. les modalités de la variable utilisée pour effectuer l'agrégation, deviennent les valeurs de l'index.
-
-On peut vouloir réutiliser cette information dans des analyses ultérieures, et donc la vouloir comme une colonne. Il suffit pour cela de réinitialiser l'index avec la méthode `reset_index()`.
-
-```{python}
-df_agg = df.groupby('experiment').agg({'var1': 'mean', 'var2': 'count'})
-df_agg.reset_index()
-```
-
 ### Traiter les valeurs manquantes
 
 Les valeurs manquantes sont une réalité courante dans le traitement des données réelles et peuvent survenir pour diverses raisons, telles que des non-réponses à un questionnaire, des erreurs de saisie, des pertes de données lors de la transmission ou simplement parce que l'information n'est pas applicable. Pandas offre plusieurs outils pour gérer les valeurs manquantes.
 
 #### Représentation des valeurs manquantes
 
-Dans Pandas, les valeurs manquantes sont généralement représentées par `np.nan`, qui est un marqueur spécial fourni par la bibliothèque `NumPy`. S'il est préférable d'utiliser cet objet pour dénoter les valeurs manquantes, notons que l'objet `None` de `Python` est également compris comme une valeur manquante par `Pandas`.
+On peut tout d'abord traiter les valeurs manquantes avec les méthodes associées.
+Pour rappel, en Polars, les valeurs `NaN` et `null` sont différentes, alors qu'en Pandas elles sont traitées de manière similaire.
+Seule `Null` est considéré par défaut comme une valeur manquante.
 
-Vérifions cette propriété. Pour identifier où se trouvent les valeurs manquantes, on utilise la fonction `isna()` qui retourne un DataFrame booléen indiquant `True` là où les valeurs sont `NaN`.
-
+Vérifions cette propriété.
+Pour identifier où se trouvent les valeurs manquantes, on utilise la fonction `is_null()` ou `is_nan()` appliquée à une colonne.
 ```{python}
-df = pd.DataFrame(
+df = pl.DataFrame(
     data = {
-        "var1": [1.3, 5.6, np.nan, np.nan, 0, np.nan],
+        "var1": [1.3, 5.6, np.nan, 1.4, None, np.nan],
         "var2": np.random.randint(-10, 10, 6),
         "experiment": ["test", "train", "test", None, "train", "validation"],
         "sample": "sample1"
     }
 )
+df.with_columns(
+    var1_na=pl.col("var1").is_nan(),
+    var1_null=pl.col("var1").is_null()
+)
+```
 
-df.isna()
+On peut à l'inverse éliminer les lignes qui comportent une valeur manquante ou un `NaN` :
+```{python}
+print(df.drop_nans())
+print(df.drop_nulls())
 ```
 
 #### Calculs sur des colonnes contenant des valeurs manquantes
