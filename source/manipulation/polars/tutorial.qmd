@@ -160,8 +160,8 @@ Si vous voulez transformer un dataframe en une série Polars, il faut utiliser l
 ```{python}
 print(f'En passant par select.to_series(), la table \n {df.select('var1').to_series()} \n est de type {type(df.select('var1').to_series())}')
 print(f'En passant par df[var1], la table \n {df['var1']} \n est aussi de type {type(df['var1'])}')
-
 ```
+
 :::
 
 
@@ -184,6 +184,7 @@ La principale différence tient au nommage des colonnes.
 En effet, le nom de chaque colonne doit être entourée d'un sélecteur `pl.col`.
 
 Quand en R on écrirait
+
 ```r
 df |>
     filter(var1>=0)
@@ -202,6 +203,7 @@ Ce sera selon votre goût :)
 - **Inégalités** : On peut vouloir garder seulement les lignes qui respectent une certaine condition.
 
 Exemple, filtrer les lignes où la valeur de la colonne `var1` est supérieure à 0 :
+
 ```{python}
 df.filter(pl.col('var1') >= 0)
 ```
@@ -210,6 +212,7 @@ df.filter(pl.col('var1') >= 0)
 - **Appartenance avec `is_in`** : Si on veut filtrer les données basées sur une liste de valeurs possibles, la méthode `is_in` est très utile.
 
 Exemple, pour garder uniquement les lignes où la colonne `experiment` a des valeurs 'test' ou 'validation' :
+
 ```{python}
 df.filter(pl.col('experiment').is_in(['train', 'validation']))
 ```
@@ -221,6 +224,7 @@ Par défaut, les filtres sont considérés comme des "et" : filter(condA, condB)
 
 Exemple :
 - sélectionner les lignes où `var1` est supérieur à 0 **et** `experiment` est égal à 'test' ou 'validation':
+
 ```{python}
 df.filter((pl.col("var1") >= 0) & pl.col("experiment").is_in(['train', 'validation']))
 # équivalent à
@@ -228,6 +232,7 @@ df.filter(pl.col("var1") >= 0, pl.col("experiment").is_in(['train', 'validation'
 ```
 
 - sélectionner les lignes où `var1` est supérieur à 0 **ou** `experiment` est égal à 'test' ou 'validation':
+
 ```{python}
 df.filter((pl.col("var1") >= 0) | pl.col("experiment").is_in(['train', 'validation']))
 ```
@@ -270,15 +275,17 @@ On peut convertir une colonne d'un type à l'autre avec la méthode `cast` en in
 dans un dictionnaire le nom de la colonne et le format Polars souhaité.
 
 Par exemple, dans la table `df` définie ci-dessus, Polars a assigné les formats suivants :
+
 ```{python}
 df.schema
 ```
+
 On peut convertir `var1` en caractère et `date` en un format temporel par exemple :
 
 ```{python}
 df.cast({"var1":pl.String, "date":pl.Date})
 ```
- 
+
 #### Importer un fichier CSV
 
 Comme nous l'avons vu dans un précédent TP, le format CSV est l'un des formats les plus courants pour stocker des données tabulaires. Nous avons précédemment utilisé la librairie `csv` pour les manipuler comme des fichiers texte, mais ce n'était pas très pratique. Pour rappel, la syntaxe pour lire un fichier CSV et afficher les premières lignes était la suivante :
@@ -600,11 +607,27 @@ Il permet ainsi de modifier des valeurs de colonne, d'effectuer des opérations 
 La fonction with_columns fonctionne de  deux manières différentes :
 
     1. en utilisant une syntaxe plus proche du SQL et de Python, grâce à la méthode `.alias()`.
-    Par exemple, si l'on veut définir la colonne `b` comme la colonne `a` divisée par 2 , on va utiliser la formule suivante :  df.with_columns((pl.col("a")/2).alias("b")
-    2. plus similaire au tidyverse, en assignant les variables selon la structure : b=pl.col("a")/2
-1. 
+    2. plus similaire au tidyverse, en assignant les variables avec une équation
+
+Par exemple, si l'on veut définir la colonne `b` comme la colonne `a` divisée par 2 , on va utiliser la formule suivante :
+
+```{python}
+df = pl.DataFrame({'a':np.random.randint(-10, 10, 6), 'b': np.random.randint(5, 15, 6)})
+
+df.with_columns(
+    # Première méthode :
+    (pl.col("a")/2).alias("b"),
+    (np.abs(pl.col("a"))).alias("abs_a"),
+    # Ou l'autre méthode :
+    b2=pl.col("a")/2,
+    abs_a2=np.abs(pl.col("a"))
+)
+
+```
+
+
 ::: {.callout-tip}
-La structure pl.when est très pratique et équivaut à la structure  ifelse en R.
+La structure `pl.when` est très pratique et équivaut à la structure `ifelse` en R.
 
 Par exemple, si je veux définir la colonne val à partir de la colonne foo selon le schéma : si foo > 2 : val = 1, sinon val = 1 + bar, cela s'écrite en polars :
 
@@ -633,40 +656,32 @@ df.with_columns(
 
 :::
 
-```{python}
-df = pd.DataFrame(
-    data = {
-        "var1": [1.3, 5.6, 7.8, np.nan, 0, np.nan],
-        "var2": np.random.randint(-10, 10, 6),
-    }
-)
+La méthodes fill_null permet de remplacer les valeurs manquante
 
-np.abs(df["var2"])
+```{python}
+df.fill_null(strategy='zero')
 ```
 
-```{python}
-df["var1"].replace(0, np.nan)
-```
 
-Mais il existe d'autres transformations que l'on applique généralement au niveau d'une ou de quelques colonnes. Par exemple, lorsque le schéma n'a pas été bien reconnu à l'import, il peut arriver que des variables numériques soient définies comme des string (type `object` en Pandas).
+Mais il existe d'autres transformations que l'on applique généralement au niveau d'une ou de quelques colonnes. Par exemple, lorsque le schéma n'a pas été bien reconnu à l'import, il peut arriver que des variables numériques soient définies comme des string.
 
 ```{python}
-df = pd.DataFrame(
+df = pl.DataFrame(
     data = {
-        "var1": [1.3, 5.6, np.nan],
+        "var1": [1.3, 5.6, None],
         "var2": ["1", "5", "18"],
     }
 )
 
-df.info()
+df.glimpse()
 ```
 
-Dans ce cas, on peut utiliser la méthode `astype` pour convertir la colonne dans le type souhaité.
+Dans ce cas, on peut utiliser la méthode `cast` pour convertir la colonne dans le type souhaité en spécifiant avec un format de dictionnaire les colonnes à modifier . La clé LE dictionnaire est écrit sous le `{'nom de la colonne':'type Polars à appliquer'}`. Les types sont décrits plus haut et dans la [documentation de Polars](https://docs.pola.rs/api/python/stable/reference/datatypes.html).
 
 ```{python}
-df['var2'] = df['var2'].astype(int)
+df = df.cast({'var2':pl.Int32})
 
-df.info()
+df.glimpse()
 ```
 
 #### Renommer des colonnes
