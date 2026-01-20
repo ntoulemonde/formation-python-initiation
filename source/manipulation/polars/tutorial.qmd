@@ -304,7 +304,14 @@ df_departements.head()
 ```
 
 A la différence de Pandas et à la date d'écriture de ce tutoriel, Polars ne charge pas directement depuis une URL et ne dézippe pas encore automatiquement le fichier csv (_cf._ [discussion de cette problématique sur Github](https://github.com/pola-rs/polars/issues/19447)).
-Il faut donc faire ces étapes soi-même pour le moment grâce aux packages `requests`et `zipfile`.
+Soit on utilise la fonction idoine de `pandas` et après on transforme le dataframe en `polars` facilement grâce à la fonction `pl.from_pandas`.
+
+```{python}
+url = "https://www.insee.fr/fr/statistiques/fichier/2540004/nat2021_csv.zip"
+pl.from_pandas(pd.read_csv(url, delimiter=";"))
+```
+
+Si l'on veut éviter une dépendance à `pandas` juste pour cette opération, il faut donc faire ces étapes soi-même pour le moment grâce aux packages `requests`et `zipfile`.
 Prenons l'exemple d'un fichier CSV disponible sur le site de l'INSEE : le fichier des prénoms, issu des données de l'état civil.
 
 ```{python}
@@ -464,6 +471,7 @@ import json
 
 response = requests.get("https://data.geopf.fr/geocodage/search?q=comedie&type=street")
 ```
+
 Le résultat de la requête est un dictionnaire avec 3 clés, dont la deuxième, 'features', stocke les résultats sous forme d'une liste.
 Pour importer directement ce fichier en Polars, on peut utiliser la méthode from_dict ou from_dicts.
 
@@ -552,7 +560,7 @@ Plusieurs éléments d'information clés peuvent être extraits de ce résultat 
 - **schéma** : la liste des colonnes est affichée avec des informations très utiles sur le schéma des données :
 
   - **Format** : Le format Polars de données de la colonne, par exemple `<str>`pour un format caractère (ou `pl.String`).
-  Ceka permet de comprendre la nature des informations stockées dans chaque colonne.
+  Cela permet de comprendre la nature des informations stockées dans chaque colonne.
 
   - **les premières valeurs** : après chaque colonne sont indiquées, à l'horizontale, les premières valeurs de la colonne.
   Cela permet de mieux comprendre le schéma du DataFrame.
@@ -583,23 +591,52 @@ Les transformations peuvent concerner l'ensemble du DataFrame, des colonnes spé
 
 #### Transformer les colonnes
 
-En équivalent de mutate du tidyverse ou du replace de pandas, Polars utilise with_columns.
-Le fonctionnement est similaire au mutate du tidyverse.
+En équivalent de `mutate` du tidyverse ou du `replace` de pandas, Polars utilise `with_columns`.
+Le fonctionnement est similaire au `mutate` du tidyverse.
 Il permet ainsi de modifier des valeurs de colonne, d'effectuer des opérations etc.
 
-La structure pl.when(pl.col.foo > 2).then(1).otherwise(1 + pl.col.bar).alias("val")
 
-Deux types d'expression différents :
-- avec alias
-- plus similaire au tidyverse, avec assignation.
 
-Attention, les caractères simple sont assimilés aux valeurs des colonnes.
+La fonction with_columns fonctionne de  deux manières différentes :
+
+    1. en utilisant une syntaxe plus proche du SQL et de Python, grâce à la méthode `.alias()`.
+    Par exemple, si l'on veut définir la colonne `b` comme la colonne `a` divisée par 2 , on va utiliser la formule suivante :  df.with_columns((pl.col("a")/2).alias("b")
+    2. plus similaire au tidyverse, en assignant les variables selon la structure : b=pl.col("a")/2
+1. 
+::: {.callout-tip}
+La structure pl.when est très pratique et équivaut à la structure  ifelse en R.
+
+Par exemple, si je veux définir la colonne val à partir de la colonne foo selon le schéma : si foo > 2 : val = 1, sinon val = 1 + bar, cela s'écrite en polars :
+
+
+```{python}
+df = pl.DataFrame({'foo':np.random.randint(-10, 10, 6), 'bar': np.random.randint(5, 15, 6)})
+df.with_columns(
+    pl.when(pl.col('foo') > 2).then(1).otherwise(1 + pl.col('bar')).alias("val")
+)
+```
+
+:::
+
+::: {.callout-warning}
+
+Attention, en Polars, les caractères simples sont assimilés aux  colonnes.
 Pour insérer un caractère, utiliser pl.lit.
+
+```{python}
+df = pl.DataFrame({'foo':np.random.randint(-10, 10, 6), 'bar': np.random.randint(5, 15, 6)})
+df.with_columns(
+    val="foo",
+    this_is_foo=pl.lit("foo")
+)
+```
+
+:::
 
 ```{python}
 df = pd.DataFrame(
     data = {
-        "var1": [1.3, 5.6, np.nan, np.nan, 0, np.nan],
+        "var1": [1.3, 5.6, 7.8, np.nan, 0, np.nan],
         "var2": np.random.randint(-10, 10, 6),
     }
 )
