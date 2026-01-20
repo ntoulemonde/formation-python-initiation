@@ -686,16 +686,15 @@ df.glimpse()
 
 #### Renommer des colonnes
 
-Une autre opération fréquente est le renommage d'une ou plusieurs colonnes. Pour cela, on peut utiliser la méthode [rename()](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.rename.html), à laquelle on passe un dictionnaire qui contient autant de couples clé-valeur que de variables à renommer, et dans lequel chaque couple clé-valeur est de la forme `'ancien_nom': 'nouveau_nom'`.
+Une autre opération fréquente est le renommage d'une ou plusieurs colonnes. Pour cela, on peut utiliser la méthode [rename()](https://docs.pola.rs/api/python/stable/reference/dataframe/api/polars.DataFrame.rename.html#polars.DataFrame.rename), à laquelle on passe un dictionnaire qui contient autant de couples clé-valeur que de variables à renommer, et dans lequel chaque couple clé-valeur est de la forme `'ancien_nom': 'nouveau_nom'`.
 
 ```{python}
-df.rename(columns={'var2': 'age'})
+df.rename({'var2': 'age'})
 ```
 
 
 #### Fonctions complexes
 
-map_element
 Néanmoins, on peut se retrouver dans certains (rares) cas où une opération ne peut pas être facilement vectorisée ou où la logique est complexe. Supposons par exemple que l'on souhaite combiner les valeurs de plusieurs colonnes en fonction de certaines conditions.
 
 ```{python}
