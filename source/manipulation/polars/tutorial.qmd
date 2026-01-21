@@ -676,7 +676,9 @@ df = pl.DataFrame(
 df.glimpse()
 ```
 
-Dans ce cas, on peut utiliser la méthode `cast` pour convertir la colonne dans le type souhaité en spécifiant avec un format de dictionnaire les colonnes à modifier . La clé LE dictionnaire est écrit sous le `{'nom de la colonne':'type Polars à appliquer'}`. Les types sont décrits plus haut et dans la [documentation de Polars](https://docs.pola.rs/api/python/stable/reference/datatypes.html).
+Dans ce cas, on peut utiliser la méthode `cast` pour convertir la colonne dans le type souhaité en spécifiant avec un dictionnaire les colonnes à modifier.
+Le dictionnaire est écrit sous le format `{'nom de la colonne 1':'type Polars à appliquer', 'nom de la colonne 2':'type Polars à appliquer'}`.
+Les types sont décrits plus haut et dans la [documentation de Polars](https://docs.pola.rs/api/python/stable/reference/datatypes.html).
 
 ```{python}
 df = df.cast({'var2':pl.Int32})
