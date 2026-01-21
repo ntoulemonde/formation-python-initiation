@@ -869,15 +869,22 @@ Les valeurs manquantes sont une réalité courante dans le traitement des donné
 
 On peut tout d'abord traiter les valeurs manquantes avec les méthodes associées.
 Pour rappel, en Polars, les valeurs `NaN` et `null` sont différentes, alors qu'en Pandas elles sont traitées de manière similaire.
-Seule `Null` est considéré par défaut comme une valeur manquante.
+
+| | **Type `null`** | **Type `NaN`** |
+|--|--|--|
+| **Signification** | Seule `Null` est considéré par défaut comme une valeur manquante et est l'unique type de valeur manquante dans Polars (que le type original soit temporel, numérique, un charactère ...). | `NaN` représente à l'inverse des valeurs numériques erronées, comme le résultat d'une division par 0. |
+| **Comment les créer ?** | Les valeurs manquantes peuvent être crées simplement avec `None`. | Pour créer une valeur `NaN`, valable uniquement pour les types numériques, on peut utiliser `np.nan` de NumPy ou `float("nan")` de Polars. |
+| Comportement dans Polars | Ces valeurs sont en général **ignorées**. | Ces valeurs **se propagent**. |
+
 
 Vérifions cette propriété.
 Pour identifier où se trouvent les valeurs manquantes, on utilise la fonction `is_null()` ou `is_nan()` appliquée à une colonne.
+
 ```{python}
 df = pl.DataFrame(
     data = {
-        "var1": [1.3, 5.6, np.nan, 1.4, None, np.nan],
-        "var2": np.random.randint(-10, 10, 6),
+        "var1": [1.3, 5.6, 2.2, 1.4, None, 1.7],
+        "var2": np.append(np.random.randint(-10, 10, 5), np.nan),
         "experiment": ["test", "train", "test", None, "train", "validation"],
         "sample": "sample1"
     }
@@ -889,6 +896,7 @@ df.with_columns(
 ```
 
 On peut à l'inverse éliminer les lignes qui comportent une valeur manquante ou un `NaN` :
+
 ```{python}
 print(df.drop_nans())
 print(df.drop_nulls())
@@ -896,35 +904,33 @@ print(df.drop_nulls())
 
 #### Calculs sur des colonnes contenant des valeurs manquantes
 
-Lors de calculs statistiques, les valeurs manquantes sont généralement ignorées. Par exemple, la méthode `.mean()` calcule la moyenne des valeurs non manquantes.
+Lors de calculs statistiques, les valeurs nulles sont généralement ignorées en Polars. Par exemple, la méthode `.mean()` calcule la moyenne des valeurs non manquantes.
 
 ```{python}
 df['var1'].mean()
 ```
 
-En revanche, les calculs faisant intervenir plusieurs colonnes n'ignorent pas toujours les valeurs manquantes et peuvent souvent donner des résultats en `NaN`.
+En revanche, les valeurs 'Not a Number', ou `NaN`, ont plutôt tendance à se propager.
 
 ```{python}
-df['var3'] = df['var1'] + df['var2']
-
-df
+df['var2'].mean()
 ```
 
 #### Suppression des valeurs manquantes
 
-La méthode `dropna()` permet de supprimer les lignes (`axis=0`) ou les colonnes (`axis=1`) contenant des valeurs manquantes. Par défaut, toute ligne contenant au moins une valeur manquante est supprimée.
+Les méthodes `drop_nulls()` et `drop_nans()` permettent de supprimer les lignes contenant des valeurs manquantes ou des NaN.
+
+Par défaut, toute ligne contenant au moins une valeur manquante ou NaN est supprimée.
 
 ```{python}
-df.dropna()
+df.drop_nans()
 ```
 
-En modifiant le paramètre `axis`, on peut demander à ce que toute colonne contenant au moins une valeur manquante soit supprimée.
+Si l'on spécifie une liste de colonnes, seules les lignes comportant une valeur manquante ou NaN de cette colonne seront supprimées.
 
 ```{python}
-df.dropna(axis=1)
+df.drop_nulls(['var1'])
 ```
-
-Enfin, le paramètre `how` définit la modalité de supression. Par défaut, une ligne ou colonne est supprimée lorsqu'au moins une valeur est manquante (`how=any`), mais il est possible de ne supprimer la ligne/colonne que lorsque toutes les valeurs sont manquantes (`how=all`).
 
 #### Remplacement des valeurs manquantes
 
