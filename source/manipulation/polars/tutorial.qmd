@@ -1173,15 +1173,17 @@ df.with_columns(
 
 ### Joindre des tables
 
-Dans le cadre d'une analyse de données, il est courant de vouloir combiner différentes sources de données. Cette combinaison peut se faire verticalement (un DataFrame par dessus l'autre), par exemple lorsque l'on souhaite combiner deux millésimes d'une même enquête afin de les analyser conjointement. La combinaison peut également se faire horizontalement (côte à côte) selon une ou plusieurs clé(s) de jointure, souvent dans le but d'enrichir une source de données à partir d'une autre source portant sur les mêmes unités statistiques.
+Dans le cadre d'une analyse de données, il est courant de vouloir combiner différentes sources de données.
+Cette combinaison peut se faire verticalement (un DataFrame par dessus l'autre), par exemple lorsque l'on souhaite combiner deux millésimes d'une même enquête afin de les analyser conjointement.
+La combinaison peut également se faire horizontalement (côte à côte) selon une ou plusieurs clé(s) de jointure, souvent dans le but d'enrichir une source de données à partir d'une autre source portant sur les mêmes unités statistiques.
 
 #### Concaténer des tables
 
-La concaténation verticale de tables se fait à l'aide de la fonction `concat()` de Pandas.
+La concaténation verticale de tables se fait à l'aide de la fonction [`concat()`](https://docs.pola.rs/api/python/stable/reference/api/polars.concat.html#polars.concat) de Polars.
 
 ```{python}
 
-df1 = pd.DataFrame(
+df1 = pl.DataFrame(
     data = {
         "var1": [1, 5],
         "var2": [3, 7],
@@ -1190,7 +1192,25 @@ df1 = pd.DataFrame(
     }
 )
 
-df2 = pd.DataFrame(
+df2 = pl.DataFrame(
+    data = {
+        "var1": [9, 13],
+        "var2": [11, 15],
+        "date": ["2023-01-01", "2023-01-02"],
+        "sample": ["sample2", "sample2"]
+    }
+)
+
+pl.concat([df1, df2])
+
+```
+
+A la grande différence de `Pandas`, **l'ordre des variables dans les deux DataFrames importe**.
+
+Ainsi, le même code avec `df2` défini comme ci-après va renvoyer une erreur.
+```{.python}
+
+df2 = pl.DataFrame(
     data = {
         "var1": [9, 13],
         "date": ["2023-01-01", "2023-01-02"],
@@ -1199,81 +1219,91 @@ df2 = pd.DataFrame(
     }
 )
 
-df_concat = pd.concat([df1, df2])
-
-df_concat
 ```
 
-Notons que l'ordre des variables dans les deux DataFrames n'est pas important. Pandas ne juxtapose pas "bêtement" les deux DataFrames, il fait une correspondance des schémas pour faire correspondre les variables par nom. Si deux variables ont le même nom mais pas le même type - par exemple dans le cas où une variable numérique aurait été interprétée comme des strings - Pandas va résoudre le problème en prenant le dénominateur commun, c'est à dire en général convertir en strings (type `object`).
+Pour contourner ce problème, il suffit de préférer une méthode de type `join` avec `df1.join(df2, on=df1.columns, how="full", coalesce=True)` (*cf.* ci-après).
 
-Par contre, la concaténation précédente laisse apparaître un problème de répétition au niveau de l'index. C'est logique : on n'a pas spécifié d'index pour nos deux DataFrames initiaux, qui ont donc le même index de position ([0, 1]). Dans ce cas (où l'index n'est pas important), on peut passer le paramètre `ignore_index=True` pour reconstruire de zéro l'index final.
-
-```{python}
-df_concat = pd.concat([df1, df2], ignore_index=True)
-
-df_concat
-```
-
-::: {.callout-warning title="Construction itérative d'un DataFrame"}
-On pourrait avoir l'idée d'utiliser `pd.concat()` pour construire un DataFrame de manière itérative, en ajoutant à chaque itération d'une boucle une nouvelle ligne au DataFrame existant. Ce n'est néanmoins pas une bonne idée : comme nous l'avons vu, un DataFrame est représenté dans la mémoire commme une juxtaposition de Series. Ainsi, ajouter une colonne à un DataFrame est peu coûteux, mais ajouter une ligne implique de modifier chaque élément constituant du DataFrame. Pour construire un DataFrame, il est donc plutôt conseillé de stocker les lignes dans une liste de listes (une par colonne) ou un dictionnaire, puis d'appeler `pd.DataFrame()` pour construire le DataFrame, comme nous l'avons fait au début de ce tutoriel.
-:::
 
 #### Fusionner des tables
 
-La fusion de tables est une opération qui permet d'associer des lignes de deux DataFrames différents en se basant sur une ou plusieurs clés communes, similaire aux jointures dans les bases de données SQL. Différents types de jointure sont possible selon les données que l'on souhaite conserver, dont les principaux sont représentés sur le graphique suivant.
+La fusion de tables est une opération qui permet d'associer des lignes de deux DataFrames différents en se basant sur une ou plusieurs clés communes, similaire aux jointures dans les bases de données SQL.
+Différents types de jointure sont possible selon les données que l'on souhaite conserver, dont les principaux sont représentés sur le graphique suivant.
 
 ![](img/joins.png)
 
 Source : [lien](https://medium.com/swlh/merging-dataframes-with-pandas-pd-merge-7764c7e2d46d)
 
-En Pandas, les jointures se font avec la fonction [merge()](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.merge.html). Pour réaliser une jointure, on doit spécifier (au minimum) deux informations :
+En Polars, les jointures se font avec la fonction [`join()`](https://docs.pola.rs/api/python/stable/reference/dataframe/api/polars.DataFrame.join.html#polars.DataFrame.join).
+Pour réaliser une jointure, on doit spécifier (au minimum) deux informations :
 
-- le type de jointure : par défaut, Pandas effectue une jointure de type `inner`. Le paramètre `how` permet de spécifier d'autres types de jointure ;
+- le type de jointure : par défaut, Polars effectue une jointure de type `inner`.
+Le paramètre `how` permet de spécifier d'autres types de jointure ;
 
-- la clé de jointure. Par défaut, Pandas essaie de joindre les deux DataFrames à partir de leurs index. En pratique, on spécifie souvent une variable présente dans le DataFrames comme clé de jointure (paramètre `on` si la variable porte le même nom dans les deux DataFrame, ou `left_on` et `right_on` sinon).
+- la clé de jointure.
+On spécifie souvent une colonne présente dans le DataFrame comme clé de jointure (paramètre `on` si la colonne porte le même nom dans les deux DataFrame, ou `left_on` et `right_on` sinon).
+
+
+Par défaut, les colonnes présentes dans les deux colonnes seront conservées avec des suffixes '_right' ou '_left'.
+Pour éviter ce comportement, il faut préciser l'argument `coalesce`.
+On peut aussi spécifier l'ordre dans lequel les colonnes apparaissent avec l'argument `maintain_order`.
+
+::: {.callout-note}
+On peut aussi tout à fait joindre selon des critères différents que l'égalité : par exemple, joint cette ligne avec toute ligne dont la date est antérieure.
+Les méthodes utilisées sont [`join_asof()`](https://docs.pola.rs/api/python/stable/reference/dataframe/api/polars.DataFrame.join_asof.html) et [`join_where()`](https://docs.pola.rs/api/python/stable/reference/dataframe/api/polars.DataFrame.join_where.html)`
+:::
+
 
 Analysons la différence entre les différents types de jointure à travers des exemples.
 
 ```{python}
-df_a = pd.DataFrame({
+df_a = pl.DataFrame({
     'key': ['K0', 'K1', 'K2', 'K3', 'K4'],
     'A': ['A0', 'A1', 'A2', 'A3', 'A4'],
     'B': ['B0', 'B1', 'B2', 'B3', 'A4']
 })
 
-df_b = pd.DataFrame({
+df_b = pl.DataFrame({
     'key': ['K0', 'K1', 'K2', 'K5', 'K6'],
     'C': ['C0', 'C1', 'C2', 'C5', 'C6'],
     'D': ['D0', 'D1', 'D2', 'D5', 'D6']
 })
 
-display(df_a)
-display(df_b)
+print(df_a)
+print(df_b)
 ```
 
+- **Inner Join**
 La jointure de type `inner` conserve les observations dont la clé est présente dans les deux DataFrame.
 
 ```{python}
-df_merged_inner = pd.merge(df_a, df_b, on='key')
-df_merged_inner
+df_a.join(df_b, on='key')
 ```
 
 ::: {.callout-warning title="Jointures inner"}
-La jointure de type `inner` est la plus intuitive : elle ne crée généralement pas de valeurs manquantes et permet donc de travailler directement sur la table fusionnée. Mais attention : si beaucoup de clés ne sont pas présentes dans les deux DataFrames à la fois, une jointure `inner` peut aboutit à des pertes importantes de données, et donc à des résultats finaux biaisés. Dans ce cas, il vaut mieux choisir une jointure à gauche ou à droite, selon la source que l'on cherche à enrichir et pour laquelle il est donc le plus important de limiter les pertes de données.
+La jointure de type `inner` est la plus intuitive : elle ne crée généralement pas de valeurs manquantes et permet donc de travailler directement sur la table fusionnée.
+Mais attention : si beaucoup de clés ne sont pas présentes dans les deux DataFrames à la fois, une jointure `inner` peut aboutit à des pertes importantes de données, et donc à des résultats finaux biaisés.
+Dans ce cas, il vaut mieux choisir une jointure à gauche ou à droite, selon la source que l'on cherche à enrichir et pour laquelle il est donc le plus important de limiter les pertes de données.
 :::
 
-Une jointure de type `left` conserve toutes les observations contenues dans le DataFrame de gauche (premier DataFrame spécifié dans `pd.merge()`). Par conséquent, si des clés sont présentes dans le DataFrame de gauche mais pas dans celui de droite, le DataFrame final contient des valeurs manquantes au niveau de ces observations (pour les variables du DataFrame de droite).
+- **Left join**
+Une jointure de type `left` conserve toutes les observations contenues dans le DataFrame de gauche (le DataFrame à qui on applique la méthode `.join()`).
+Par conséquent, si des clés sont présentes dans le DataFrame de gauche mais pas dans celui de droite, le DataFrame final contient des valeurs manquantes au niveau de ces observations (pour les variables du DataFrame de droite).
 
 ```{python}
-df_merged_left = pd.merge(df_a, df_b, how="left", on='key')
-df_merged_left
+df_a.join(df_b, how="left", on='key')
 ```
 
-La jointure de type `outer` contient toutes les observations et variables contenues dans les deux DataFrame. Ainsi, l'information retenue est maximale, mais en contrepartie les valeurs manquantes peuvent être assez nombreuses. Il sera donc nécessaire de bien traiter les valeurs manquantes avant de procéder aux analyses.
+- **Full join**
+La jointure de type `full` contient toutes les observations et variables contenues dans les deux DataFrame.
+Ainsi, l'information retenue est maximale, mais en contrepartie les valeurs manquantes peuvent être assez nombreuses.
+Il sera donc nécessaire de bien traiter les valeurs manquantes avant de procéder aux analyses.
 
 ```{python}
-df_merged_outer = pd.merge(df_a, df_b, how="outer", on='key')
-df_merged_outer
+df_a.join(df_b, how="full", on='key')
+```
+
+```{python}
+df_a.join(df_b, how="full", on='key', coalesce=True)
 ```
 
 ## Exercices
