@@ -1,15 +1,149 @@
 ::: {.content-visible when-profile="fr"}
 # Traiter des données tabulaires avec Polars
 
-L'analyse statistique a généralement pour base des **données tabulaires**, dans lesquelles chaque ligne représente une observation et chaque colonne une variable. Pour traiter ce type de données et y appliquer facilement les méthodes d'analyse de données standards, des objets dédiés ont été conçus : les `DataFrames`. Les utilisateurs de `R` connaissent bien cette structure de données, qui est native à ce langage orienté statistique. En `Python`, langage généraliste, cet objet n'existe pas nativement.
+L'analyse statistique a généralement pour base des **données tabulaires**, dans lesquelles chaque ligne représente une observation et chaque colonne une variable.
+Pour traiter ce type de données et y appliquer facilement les méthodes d'analyse de données standards, des objets dédiés ont été conçus : les `DataFrames`.
+Les utilisateurs de `R` connaissent bien cette structure de données, qui est native à ce langage orienté statistique.
+En `Python`, langage généraliste, cet objet n'existe pas nativement.
+Plusieurs packages viennent ainsi combler ce manque, comme `pandas`, XX.
+
+## Les atouts de Polars
+
+Les _benchmarks_ disponibles [sont clairs](https://h2oai.github.io/db-benchmark/) : `Polars` est
+un ours qui court vite !
+
+Le benchmark suivant, [effectué par H2O](https://h2oai.github.io/db-benchmark/), propose
+un comparatif de la vitesse des principaux frameworks de manipulation de données
+pour effectuer une agrégation par groupe avec un jeu de données de 50GB:
+
+![Benchmark H2O](img/polars-benchmark-short.png)
+
+`Polars` devance des solutions connues pour leur efficacité sur ce type d'opérations,
+comme le package `R` `data.table`. L'utilisateur habituel de `Pandas`
+ne pourrait même pas traiter ces données, qui excèdent les capacités computationnelles
+de sa machine.
+
+### L'évaluation _lazy_
+
+Plusieurs éléments expliquent cette rapidité.
+
+En premier lieu, `Polars` est conçu pour optimiser les requêtes :
+grâce au mode _lazy_ (_"paresseux"_),
+on laisse la possibilité au moteur d'analyser ce qu'on souhaite faire
+pour proposer une exécution optimale (pour la lecture comme pour la transformation des jeux de données).
+La _lazy evaluation_ est une méthode assez commune pour améliorer la vitesse
+des traitements et est utilisée, entre autres, par `Spark`.
+
+Du fait de
+la _lazy evaluation_ il est ainsi possible, par exemple,
+si un filtre sur les lignes arrive
+tardivement, de le remonter dans l'ordre des opérations effectuées par `Python`
+afin que
+les opérations ultérieures ne soient effectuées que sur
+l'ensemble optimal de données.
+Ces optimisations sont détaillées dans la [documentation officielle](https://pola-rs.github.io/polars-book/user-guide/optimizations/intro.html).
+
+
+### Lecture optimisée des fichiers
+
+L'utilisateur `Pandas` est habitué à lire du CSV avec `pd.read_csv`.
+Avec `Polars`, il existe deux manières, très ressemblantes
+de le faire.
+
+```python
+import polars as pl
+
+# Création d'une requête
+q = (
+    pl.scan_csv("iris.csv") # Lecture lazy
+    .filter(pl.col("sepal_length") > 5)
+    .groupby("species")
+    .agg(pl.all().sum())
+)
+
+# Exécution de la requête
+df = q.collect()
+```
+
+Avec cette syntaxe, les connaisseurs de `Pyspark` retrouveront facilement leurs petits (ours 🐻).
+
+On peut toujours lire de manière plus directe
+(en mode _eager_, _"impatient"_) en utilisant la fonction `read_csv`,
+et ensuite appliquer des transformations optimisables en glissant habilement `lazy` :
+
+```python
+df = pl.read_csv("iris.csv")
+
+df_res = df.lazy() # ←  ici :)
+  .filter(pl.col("sepal_length") > 5)
+  .groupby("species")
+  .agg(pl.all().sum())
+  .collect()
+```
+
+`Polars` fonctionne également très bien avec le format `Parquet`, comme illustré dans
+le _notebook_ qui accompagne ce _post_.
+
+
+### Parallélisation
+
+`Polars` parallélise les traitements dès que cela est possible, notamment dans le cas d'agrégation.
+Chaque coeur se charge d'une partie de l'agrégation et envoie des données plus légères à `Python`
+qui va finaliser l'agrégation.
+
+![Parallélisation](img/polars-split-parallel-apply-combine.svg)
+
+_Illustration du principe de la parallélisation_
+
+Sur les systèmes proposant de nombreux coeurs, cela peut faire gagner beaucoup de temps.
+
+### Des couches basses à la pointe
+
+Enfin, le choix d'utiliser à la fois le format de représentation en mémoire [Arrow](https://arrow.apache.org/) et le langage [Rust](https://www.rust-lang.org/fr) pour le coeur de la bibliothèque n'est pas étranger à cette performance.
+
+### Calculs _out of memory_
+
+`Polars` travaille vite mais présente aussi l'avantage
+de lire naturellement des jeux de données hors des limites de la mémoire de l'ordinateur grâce à [sa capacité de lire en flux](https://www.youtube.com/watch?v=3-C0Afs5TXQ) (méthode qu'on appelle le _streaming_).
+
+
+```python
+# La même requête que tout à l'heure va lire le fichier "en flux"
+df = q.collect(streaming=True)
+```
+
+De plus, `Polars` lit nativement les fichiers `Parquet` qui par ses propriétés
+permet d'aller beaucoup plus vite que le CSV !
+
+# Une API fluide
+
+C'est un reproche régulièrement fait à `Pandas` :
+la syntaxe de manipulations des données est parfois complexe ou peu lisible, et les choix d'écriture ne sont pas transparents du point de vue des performances.
+
+L'API proposée par Polars est à la fois expressive et transparente.
+Voici un exemple d'exploitation de la BPE, issu du _notebook_ accompagnant
+ce _post_ :
+
+```python
+df.lazy()
+  .filter(
+    pl.col("TYPEQU") == "B316"
+  )
+  .groupby("DEP")
+  .agg(
+    pl.count().alias("NB_STATION_SERVICE")
+  )
+  .collect()
+```
+
+# Un pipe natif
+On retrouve une sémantique d'opérations de haut niveau qui s'enchaînent à la manière de [ce que l'on peut faire en `dplyr`](https://www.book.utilitr.org/03_fiches_thematiques/fiche_tidyverse#comment-utiliser-lop%C3%A9rateur-pipe-avec-le-tidyverse).
+
+
+
+
 
 On commence par importer la librairie `Polars`. L'usage est courant est de lui attribuer l'alias `pl` afin de simplifier les futurs appels aux objets et fonctions du package.
-
-Intro, reprendre de <https://ssphub.netlify.app/post/polars/>
-
-
-- [Lien réparé vers le notebook Polars](https://datalab.sspcloud.fr/launcher/ide/jupyter-python?name=Tutoriel%20Polars&version=2.3.28&s3=region-79669f20&init.personalInit=«https%3A%2F%2Fraw.githubusercontent.com%2Fntoulemonde%2Ftest%2Frefs%2Fheads%2Fmain%2Finit.sh»&autoLaunch=true)
-
 
 Polars plus proche de l'univers du tidyverse pour des personnes venant de R.
 beaucoup plus rapide que pandas
@@ -19,23 +153,20 @@ très strict sur les types des colonnes
 
 
 Parler de :
-- types : FAIT
 - colonnes sont associées à des string.
 - pas d'index.
 - polars selectors
-- pipe
 - lazy eval
 - unnest
 
 "TO DO" - Polars Séries
-"TO DO" les sélecteurs dans Polars
 
 pour aller plus loin :
 - interconnection avec duckDB pour des requêtes en SQL
 
 Ressources :
-https://ddotta.github.io/awesome-polars/
-
+- [Blog Awesome Polars](https://ddotta.github.io/awesome-polars/), par Damien D
+- [Notebook Polars](https://datalab.sspcloud.fr/launcher/ide/jupyter-python?name=Tutoriel%20Polars&version=2.3.28&s3=region-79669f20&init.personalInit=«https%3A%2F%2Fraw.githubusercontent.com%2Fntoulemonde%2Ftest%2Frefs%2Fheads%2Fmain%2Finit.sh»&autoLaunch=true)
 
 
 ::: {.panel-tabset group="polars_vs_tidypolars"}}
@@ -1311,23 +1442,19 @@ df_a.join(df_b, how="full", on='key', coalesce=True)
 ### Questions de compréhension
 
 
-- 1/ Qu'est-ce qu'un DataFrame dans le contexte de Pandas et à quel type de structure de données peut-on le comparer dans le langage Python ?
+- 1/ Qu'est-ce qu'un DataFrame dans le contexte de Polars et à quel type de structure de données peut-on le comparer dans le langage Python ?
 
-- 2/ Quelle est la différence fondamentale entre un array Numpy et une Pandas Series ?
+- 2/ Quels sont les avantages de Polars ?
 
-- 3/ Quel est le lien entre Series et DataFrame dans Pandas ?
+- 3/ Quel est le lien entre Series et DataFrame dans Polars ?
 
-- 4/ Comment sont structurées les données dans un DataFrame Pandas ?
-
-- 5/ Quel est le rôle de l'index dans un DataFrame Pandas et comment peut-il être utilisé lors de la manipulation des données ?
+- 4/ Comment sont structurées les données dans un DataFrame Polars ?
 
 - 6/ Quelles méthodes pouvez-vous utiliser pour explorer un DataFrame inconnu et en apprendre davantage sur son contenu et sa structure ?
 
-- 7/ Dans Pandas, quelle est la différence entre assigner le résultat d'une opération à une nouvelle variable et utiliser une méthode avec l'argument `inplace=True` ?
+- 8/ Comment s'applique le principe d'évaluation paresseuse dans Polars et pourquoi est-ce avantageux pour manipuler les données ?
 
-- 8/ Comment s'applique le principe de la vectorisation dans Pandas et pourquoi est-ce avantageux pour manipuler les données ?
-
-- 9/ Comment Pandas représente-t-il les valeurs manquantes et quel impact cela a-t-il sur les calculs et les transformations de données ?
+- 9/ Comment Polars représente-t-il les valeurs manquantes et quel impact cela a-t-il sur les calculs et les transformations de données ?
 
 - 10/ Quelle est la différence entre concaténer deux DataFrames et les joindre via une jointure, et quand utiliseriez-vous l'une plutôt que l'autre ?
 
