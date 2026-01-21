@@ -1049,12 +1049,19 @@ df.with_columns(
 
 #### Données catégorielles
 
-Les données catégorielles sont des variables qui contiennent un nombre restreint de modalités. A l'instar de `R` avec la notion de `factor`, Pandas a un type de données spécial, `category`, qui est utile pour représenter des données catégorielles de manière plus efficace et plus informative. Les données catégorielles sont en effet optimisées pour certains types de données et peuvent accélérer les opérations comme le groupement et le tri. Elles sont également utiles pour la visualisation, car elles permettent d'assurer que les catégories sont affichées dans un ordre cohérent et logique.
+Les données catégorielles sont des variables qui contiennent un nombre restreint de modalités.
+A l'instar de `R` avec la notion de `factor`, Polars a un type de données spécial, `Categorical`, qui peut être utilisé pour représenter des données catégorielles.
 
-Pour convertir une variable au format `category`, on utilise la méthode `astype()`.
+Ce type de données est cependant délicat à gérer en Polars et, en général, on préfèrera travailler avec des données de type caractère.
+
+En effet, les méthodes usuelles pour renommer des catégories, dissocier son nom et sa représentation, réarranger l'ordre dans laquelle les catégories sont visualisées sont encore très largement perfectibles (voire inexistantes :o).
+
+Si l'on veut quand même avoir la base, on peut convertir une variable au format `Categorical`, on peut directement utiliser la méthode `cast()`.
+Polars va alors inférer le schéma de la catégorie et le stocker dans un objet de type `Categories`.
+
 
 ```{python}
-df = pd.DataFrame(
+df = pl.DataFrame(
     data = {
         "var1": [1.3, 5.6, None, None, 0, None],
         "var2": np.random.randint(-10, 10, 6),
@@ -1065,24 +1072,18 @@ print(df.dtypes)
 ```
 
 ```{python}
-df['experiment'] = df['experiment'].astype('category')
-
+df = df.with_columns(pl.col("experiment").cast(pl.Categorical))
 print(df.dtypes)
 ```
 
-Cette conversion nous donne accès à quelques méthodes bien pratiques, spécifiques au traitement des variables catégorielles. Il peut par exemple être utile de renommer les catégories pour des raisons de clarté ou de standardisation.
+Les `Categories` ont un certain nombre de méthodes, tout comme les données textuelles, présentées dans la [documentation](https://docs.pola.rs/api/python/stable/reference/series/categories.html).
+
+On pourra alors par exemple accéder aux catégories avec la méthode `Series.cat.get_categories()`
 
 ```{python}
-df['experiment'] = df['experiment'].cat.rename_categories({'test': 'Test', 'train': 'Train', 'validation': 'Validation'})
-df
+df['experiment'].cat.get_categories()
 ```
 
-Parfois, l'ordre des catégories est significatif, et on peut vouloir le modifier. En particulier dans le cadre de la visualisation, car les modalités seront par défaut affichées dans l'ordre spécifié.
-
-```{python}
-df_cat = df['experiment'].cat.reorder_categories(['Test', 'Train', 'Validation'], ordered=True)
-df.groupby("experiment").mean().plot(kind='bar')
-```
 
 #### Données temporelles
 
