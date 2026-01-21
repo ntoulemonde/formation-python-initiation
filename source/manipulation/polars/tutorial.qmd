@@ -115,7 +115,7 @@ df = q.collect(streaming=True)
 De plus, `Polars` lit nativement les fichiers `Parquet` qui par ses propriétés
 permet d'aller beaucoup plus vite que le CSV !
 
-# Une API fluide
+### Une API fluide
 
 C'est un reproche régulièrement fait à `Pandas` :
 la syntaxe de manipulations des données est parfois complexe ou peu lisible, et les choix d'écriture ne sont pas transparents du point de vue des performances.
@@ -136,12 +136,12 @@ df.lazy()
   .collect()
 ```
 
-# Un pipe natif
+### Un pipe natif
 On retrouve une sémantique d'opérations de haut niveau qui s'enchaînent à la manière de [ce que l'on peut faire en `dplyr`](https://www.book.utilitr.org/03_fiches_thematiques/fiche_tidyverse#comment-utiliser-lop%C3%A9rateur-pipe-avec-le-tidyverse).
 
 
 
-
+## Intro - TO DO
 
 On commence par importer la librairie `Polars`. L'usage est courant est de lui attribuer l'alias `pl` afin de simplifier les futurs appels aux objets et fonctions du package.
 
@@ -153,6 +153,7 @@ très strict sur les types des colonnes
 
 
 Parler de :
+
 - colonnes sont associées à des string.
 - pas d'index.
 - polars selectors
@@ -162,14 +163,16 @@ Parler de :
 "TO DO" - Polars Séries
 
 pour aller plus loin :
+
 - interconnection avec duckDB pour des requêtes en SQL
 
 Ressources :
+
 - [Blog Awesome Polars](https://ddotta.github.io/awesome-polars/), par Damien D
 - [Notebook Polars](https://datalab.sspcloud.fr/launcher/ide/jupyter-python?name=Tutoriel%20Polars&version=2.3.28&s3=region-79669f20&init.personalInit=«https%3A%2F%2Fraw.githubusercontent.com%2Fntoulemonde%2Ftest%2Frefs%2Fheads%2Fmain%2Finit.sh»&autoLaunch=true)
 
 
-::: {.panel-tabset group="polars_vs_tidypolars"}}
+::: {.panel-tabset group="polars_vs_tidypolars" name="Pour commencer"}
 
 ## Polars
 ```{python}
@@ -178,19 +181,20 @@ import numpy as np
 ```
 
 ## Tidypolars
-Pour celles et ceux qui veulent utiliser des fonctions pressqu'identiques à celles du tidyverse,
+Pour celles et ceux qui veulent utiliser des fonctions presqu'identiques à celles du tidyverse,
 il y a le package [tidypolars](https://tidypolars.readthedocs.io/en/latest/).
 
 Les noms des fonctions dans tidypolars sont presque tous identiques à ceux du tidyverse:
-- un DataFrame de Polars devient un tibble chez tidypolars;
-- la structure de la création d'un tibble est la même que dans R;
-- les méthodes filter, select de Polars restent les mêmes;
-- la méthode with_columns de Polars devient mutate  ...
+
+- un `DataFrame` de Polars devient un `tibble` chez tidypolars;
+- la structure de la création d'un `tibble` est la même que dans R;
+- les méthodes `filter`, `select` de Polars restent les mêmes;
+- la méthode `with_columns` de Polars devient `mutate`  ...
 
 Tidypolars reprend ainsi exactement la syntaxe des principales fonctions de dplyr, tidyr, stringr, lubridate, tidyselect directement dans Python!
 La liste complète des fonctions reprises est disponible dans la [documentation](https://tidypolars.readthedocs.io/en/latest/reference.html).
 
-La seule différence notable entre tidypolars et R est liée aux colonnes, qui sont accessibles par pl.col/tp.col dans polars/tidypolars quand dans R leur nom seul suffit.
+La seule différence notable entre tidypolars et R est liée aux colonnes, qui sont accessibles par `pl.col/tp.col` dans `polars/tidypolars` quand dans R leur nom seul suffit.
 
 Pour la simplicité du tutoriel, le tutoriel présente le début avec tidypolars mais ensuite  utilise uniquement Polars.
 Pour plus de détail, allez voir la [documentation](https://tidypolars.readthedocs.io/en/latest/reference.html) !
@@ -205,9 +209,9 @@ from tidypolars import col
 :::
 
 
-## Structures de données
+# C'est parti avec la structure des données
 
-### Le `DataFrame`
+## Le `DataFrame`
 
 Fondamentalement, un DataFrame consiste en une collection de Series. Cette concaténation construit donc une table de données, dont les Series correspondent aux colonnes. La figure suivante ([source](https://www.geeksforgeeks.org/creating-a-pandas-dataframe/)) permet de bien comprendre cette structure de données.
 
@@ -266,13 +270,13 @@ Les principaux autres attributs d'un dataframe sont :
     - le schéma du dataframe (df.schema)
     - les formats des colonnes (df.dtypes)
 
-## Sélectionner des données
+# Sélectionner des données
 
 Lors de la manipulation des données tabulaires, il est fréquent de vouloir extraire des colonnes spécifiques d'un `DataFrame`.
 Cette extraction suit la même logique que le tidyverse avec `Polars`.
 La méthode `select` permet de sélectionner sur les colonnes quand `filter` filtre les lignes.
 
-### Sélectionner des colonnes
+## Sélectionner des colonnes
 
 Que l'on veuille sélectionner une ou deux colonnes en `Polars`, la logique est similaire.
 
@@ -285,8 +289,8 @@ selected_column
 
 L'objet `selected_column` renvoie ici la colonne nommée `var1` du `DataFrame` `df`.
 Contrairement à Pandas, ici on ne garde qu'une seule colonne du dataframe, on ne l'extrait pas.
-L'objet `selected_columns` reste donc un dataframe de 1 colonne, et n'est pas une Polars Series.
-En effet, si on sélectionnait 2 colonnes, cela serait aussi dataframe.
+L'objet `selected_columns` reste donc un dataframe de 1 colonne, et n'est pas une série Polars.
+Si on sélectionnait 2 colonnes, cela serait ainsi aussi un dataframe.
 
 ::: {.callout-tip}
 Si vous voulez transformer un dataframe en une série Polars, il faut utiliser la méthode `to_series()` ou reprendre la syntaxe de Pandas qui marche aussi en Polars :
@@ -310,7 +314,7 @@ print(df.select(["var1", "experiment"]))
 ```
 
 
-### Sélectionner des lignes
+## Sélectionner des lignes
 
 En pratique, on souhaite souvent filtrer un DataFrame selon certaines conditions.
 Dans ce cas, on se sert principalement de filtres booléens selon une logique similaire au tidyverse.
@@ -371,13 +375,13 @@ df.filter(pl.col("var1") >= 0, pl.col("experiment").is_in(['train', 'validation'
 df.filter((pl.col("var1") >= 0) | pl.col("experiment").is_in(['train', 'validation']))
 ```
 
-## Explorer des données tabulaires
+# Explorer des données tabulaires
 
 En statistique publique, le point de départ n'est généralement pas la génération manuelle de données, mais plutôt des fichiers tabulaires préexistants.
 Ces fichiers, qu'ils soient issus d'enquêtes, de bases administratives ou d'autres sources, constituent la matière première pour toute analyse ultérieure.
 Polars offre des outils puissants et très rapides pour importer ces fichiers tabulaires et les explorer en vue de manipulations plus poussées.
 
-### Importer et exporter des données
+## Importer et exporter des données
 
 Polars est très sensible au format des données, l'import peut donc parfois être un peu long à débuger quand il n'arrive pas à déterminer le format de données de la colonne.
 En effet, Polars va traiter chaque colonne comme une série d'un des formats qu'il connaît.
@@ -420,7 +424,7 @@ On peut convertir `var1` en caractère et `date` en un format temporel par exemp
 df.cast({"var1":pl.String, "date":pl.Date})
 ```
 
-#### Importer un fichier CSV
+### Importer un fichier CSV
 
 Comme nous l'avons vu dans un précédent TP, le format CSV est l'un des formats les plus courants pour stocker des données tabulaires. Nous avons précédemment utilisé la librairie `csv` pour les manipuler comme des fichiers texte, mais ce n'était pas très pratique. Pour rappel, la syntaxe pour lire un fichier CSV et afficher les premières lignes était la suivante :
 
@@ -509,7 +513,7 @@ Tous ces paramètres et leur utilisation sont détaillés dans la [documentation
 ```
 
 
-#### Exporter au format CSV
+### Exporter au format CSV
 
 Une fois que les données ont été traitées et modifiées au sein de Polars, il est courant de vouloir exporter le résultat sous forme de fichier CSV pour le partager, l'archiver ou l'utiliser dans d'autres outils.
 Polars offre une méthode simple pour cette opération : `write_csv()`.
@@ -521,7 +525,7 @@ df_departements_dom.write_csv('output/departements2021_dom.csv', separator=";")
 ```
 
 
-#### Importer un fichier Parquet
+### Importer un fichier Parquet
 
 Le format Parquet est un autre format pour le stockage de données tabulaires, de plus en plus fréquemment utilisé.
 Sans entrer dans les détails techniques, le format Parquet présente différentes caractéristiques qui en font un choix privilégié pour le stockage et le traitement de gros volumes de données.
@@ -536,7 +540,7 @@ df_departements = pl.read_parquet('data/departement2021.parquet')
 df_departements.head()
 ```
 
-#### Exporter au format Parquet
+### Exporter au format Parquet
 
 Là encore, tout se passe comme dans le monde des CSV : on utilise la méthode `write_parquet()` pour exporter un DataFrame dans un fichier Parquet.
 
@@ -594,7 +598,7 @@ df_test_schema_csv = pl.read_csv('output/df_test_schema.csv')
 df_test_schema_csv
 ```
 
-#### Importer depuis un dictionnaire
+### Importer depuis un dictionnaire
 
 Comme illustré dans le tutoriel [Travailler avec des fichiers CSV et JSON](../csv-json-files/tutorial.qmd), on peut aussi créer un dataFrame Polars à partir d'un dictionnaire.
 Cela sera très utile par exemple quand on récupère les données d'une API (_cf._ cours de
@@ -632,7 +636,7 @@ df = df.select("features").unnest("features")
 df
 ```
 
-#### Autres exports et imports
+### Autres exports et imports
 
 - **Exporter vers un dictionnaire**:
 
@@ -650,7 +654,7 @@ Polars permet aussi facilement d'exporter et d'importer des DataFrame au format 
 Cela permet de travailler avec Polars et de convertir un DataFrame en Pandas quand un package n'autorise pas l'import depuis Polars.
 Il suffit d'utiliser la fonction `pl.from_pandas(df)` et la méthode `df.to_pandas()`.
 
-### Visualiser un échantillon des données
+# Visualiser un échantillon des données
 
 Lorsqu'on travaille avec des jeux de données volumineux, il est souvent utile de visualiser rapidement un échantillon
 des données pour avoir une idée de leur structure, de leur format ou encore pour détecter d'éventuels problèmes.
@@ -685,7 +689,7 @@ L'affichage des premières ou dernières lignes peut parfois ne pas être repré
 df_departements.sample(n=5)
 ```
 
-### Obtenir une vue d'ensemble des données
+## Obtenir une vue d'ensemble des données
 
 L'une des premières étapes lors de l'exploration de nouvelles données est de comprendre la structure générale du jeu de données.
 La méthode `glimpse()` de Polars offre une vue d'ensemble rapide des données, notamment en termes de types de données et affiche les données.
@@ -709,7 +713,7 @@ Plusieurs éléments d'information clés peuvent être extraits de ce résultat 
 Contrairement à Pandas, cette méthode n'affiche pas les valeurs manquantes.
 Pour cela, il faut utiliser les statistiques descriptives.
 
-### Calculer des statistiques descriptives
+## Calculer des statistiques descriptives
 
 En complément des informations renvoyées par la méthode `glimpse()`, on peut vouloir obtenir des
 statistiques descriptives simples afin de visualiser rapidement les distributions des variables.
@@ -723,14 +727,14 @@ Notons que, là encore, la variable `count` renvoie le nombre de valeurs **non-m
 
 
 
-## Principales manipulations de données
+# Principales manipulations de données
 
-### Transformer les données
+## Transformer les données
 
 Les opérations de transformation sur les données sont essentielles pour façonner, nettoyer et préparer les données en vue de leur analyse.
 Les transformations peuvent concerner l'ensemble du DataFrame, des colonnes spécifiques ou encore des lignes spécifiques.
 
-#### Transformer les colonnes
+### Transformer les colonnes
 
 En équivalent de `mutate` du tidyverse ou du `replace` de pandas, Polars utilise `with_columns`.
 Le fonctionnement est similaire au `mutate` du tidyverse.
@@ -820,7 +824,7 @@ df = df.cast({'var2':pl.Int32})
 df.glimpse()
 ```
 
-#### Renommer des colonnes
+### Renommer des colonnes
 
 Une autre opération fréquente est le renommage d'une ou plusieurs colonnes. Pour cela, on peut utiliser la méthode [rename()](https://docs.pola.rs/api/python/stable/reference/dataframe/api/polars.DataFrame.rename.html#polars.DataFrame.rename), à laquelle on passe un dictionnaire qui contient autant de couples clé-valeur que de variables à renommer, et dans lequel chaque couple clé-valeur est de la forme `'ancien_nom': 'nouveau_nom'`.
 
@@ -829,7 +833,7 @@ df.rename({'var2': 'age'})
 ```
 
 
-#### Fonctions complexes
+### Fonctions complexes
 
 Néanmoins, on peut se retrouver dans certains (rares) cas où une opération ne peut pas être facilement vectorisée ou où la logique est complexe.
 Supposons par exemple que l'on souhaite calculer la variation annuelle du PIB par pays dans une table comportant les pays et les années.
@@ -856,7 +860,7 @@ print(df.group_by('country').map_groups(calculate_percentage_change))
 ```
 
 
-### Trier les valeurs
+## Trier les valeurs
 
 Le tri des données est particulièrement utile pour l'exploration et la visualisation de données. Avec Polars, on utilise la méthode [sort()](https://docs.pola.rs/api/python/stable/reference/dataframe/api/polars.DataFrame.sort.html#polars.DataFrame.sort) pour trier les valeurs d'un DataFrame selon une ou plusieurs colonnes.
 
@@ -891,7 +895,7 @@ df.sort(by=['var1', 'var2'], descending=[True, True])
 ```
 
 
-### Agréger des données
+## Agréger des données
 
 L'agrégation des données est un processus dans lequel les données vont être ventilées en groupes selon certains critères, puis agrégées selon une fonction d'agrégation appliquée indépendamment à chaque groupe. Cette opération est courante lors de l'analyse exploratoire ou lors du prétraitement des données pour la visualisation ou la modélisation statistique.
 
@@ -909,7 +913,7 @@ df = pl.DataFrame(
 df.head()
 ```
 
-#### L'opération `group_by`
+### L'opération `group_by`
 
 La méthode `group_by` de Polars permet de diviser le DataFrame en sous-ensembles selon les valeurs d'une ou plusieurs colonnes, puis d'appliquer une fonction d'agrégation à chaque sous-ensemble. Elle renvoie un objet de type `dataframe.group_by` qui ne présente pas de grand intérêt en soi, mais constitue l'étape intermédiaire indispensable pour pouvoir ensuite appliquer une ou plusieurs fonction(s) d'agrégation aux différents groupes.
 
@@ -917,7 +921,7 @@ La méthode `group_by` de Polars permet de diviser le DataFrame en sous-ensemble
 df.group_by('experiment')
 ```
 
-#### Fonctions d'agrégation
+### Fonctions d'agrégation
 
 Une fois les données groupées, on peut appliquer des fonctions d'agrégation pour obtenir un résumé statistique. Polars intègre un certain nombre de ces fonctions qui  fonctionnent sur la table de donnée entière, *cf.* [liste complète dans la documentation](https://docs.pola.rs/api/python/stable/reference/dataframe/aggregation.html) ou sur des sous-ensembles de la table, en utilisant `group_by`, *cf.* [liste complète dans la documentation](https://docs.pola.rs/api/python/stable/reference/dataframe/group_by.html).
 
@@ -995,11 +999,11 @@ subset_df = (
 
 :::
 
-### Traiter les valeurs manquantes
+## Traiter les valeurs manquantes
 
 Les valeurs manquantes sont une réalité courante dans le traitement des données réelles et peuvent survenir pour diverses raisons, telles que des non-réponses à un questionnaire, des erreurs de saisie, des pertes de données lors de la transmission ou simplement parce que l'information n'est pas applicable. Pandas offre plusieurs outils pour gérer les valeurs manquantes.
 
-#### Représentation des valeurs manquantes
+### Représentation des valeurs manquantes
 
 On peut tout d'abord traiter les valeurs manquantes avec les méthodes associées.
 Pour rappel, en Polars, les valeurs `NaN` et `null` sont différentes, alors qu'en Pandas elles sont traitées de manière similaire.
@@ -1036,7 +1040,7 @@ print(df.drop_nans())
 print(df.drop_nulls())
 ```
 
-#### Calculs sur des colonnes contenant des valeurs manquantes
+### Calculs sur des colonnes contenant des valeurs manquantes
 
 Lors de calculs statistiques, les valeurs nulles sont généralement ignorées en Polars. Par exemple, la méthode `.mean()` calcule la moyenne des valeurs non manquantes.
 
@@ -1050,7 +1054,7 @@ En revanche, les valeurs 'Not a Number', ou `NaN`, ont plutôt tendance à se pr
 df['var2'].mean()
 ```
 
-#### Suppression des valeurs manquantes
+### Suppression des valeurs manquantes
 
 Les méthodes `drop_nulls()` et `drop_nans()` permettent de supprimer les lignes contenant des valeurs manquantes ou des NaN.
 
@@ -1066,7 +1070,7 @@ Si l'on spécifie une liste de colonnes, seules les lignes comportant une valeur
 df.drop_nulls(['var1'])
 ```
 
-#### Remplacement des valeurs manquantes
+### Remplacement des valeurs manquantes
 
 Pour gérer les valeurs manquantes dans un DataFrame, une approche commune est l'imputation, qui consiste à remplacer les valeurs manquantes par d'autres valeurs. La méthode [`fill_null()`](https://docs.pola.rs/api/python/stable/reference/dataframe/api/polars.DataFrame.fill_null.html) permet d'effectuer cette opération de différentes manières dans toute la table de donnée.
 
@@ -1107,9 +1111,9 @@ Remplacer les valeurs manquantes par une valeur constante, telle que zéro, la m
 
 De manière similaire, la méthode `fill_nan()` permet de remplacer les valeurs numériques NaN par toute valeur indiquée.
 
-### Traiter les données de types spécifiques
+# Traiter les données de types spécifiques
 
-#### Données textuelles
+## Données textuelles
 
 Les données textuelles nécessitent souvent un nettoyage et une préparation avant l'analyse.
 Polars fournit via la librairie de méthodes `str` un ensemble d'opérations vectorisées qui rendent la préparation des données textuelles à la fois simple et très efficace.
@@ -1178,7 +1182,7 @@ df.with_columns(
 
 ```
 
-#### Données catégorielles
+## Données catégorielles
 
 Les données catégorielles sont des variables qui contiennent un nombre restreint de modalités.
 A l'instar de `R` avec la notion de `factor`, Polars a un type de données spécial, `Categorical`, qui peut être utilisé pour représenter des données catégorielles.
@@ -1216,7 +1220,7 @@ df['experiment'].cat.get_categories()
 ```
 
 
-#### Données temporelles
+## Données temporelles
 
 Les données temporelles sont souvent présentes dans les données tabulaires afin d'identifier temporellement les observations recueillies.
 Polars offre des fonctionnalités pour manipuler ces types de données, notamment grâce au type `pl.Datetime` qui permet une manipulation précise des dates et des heures.
@@ -1302,13 +1306,13 @@ df.with_columns(
 )
 ```
 
-### Joindre des tables
+# Joindre des tables
 
 Dans le cadre d'une analyse de données, il est courant de vouloir combiner différentes sources de données.
 Cette combinaison peut se faire verticalement (un DataFrame par dessus l'autre), par exemple lorsque l'on souhaite combiner deux millésimes d'une même enquête afin de les analyser conjointement.
 La combinaison peut également se faire horizontalement (côte à côte) selon une ou plusieurs clé(s) de jointure, souvent dans le but d'enrichir une source de données à partir d'une autre source portant sur les mêmes unités statistiques.
 
-#### Concaténer des tables
+## Concaténer des tables
 
 La concaténation verticale de tables se fait à l'aide de la fonction [`concat()`](https://docs.pola.rs/api/python/stable/reference/api/polars.concat.html#polars.concat) de Polars.
 
@@ -1355,7 +1359,7 @@ df2 = pl.DataFrame(
 Pour contourner ce problème, il suffit de préférer une méthode de type `join` avec `df1.join(df2, on=df1.columns, how="full", coalesce=True)` (*cf.* ci-après).
 
 
-#### Fusionner des tables
+## Fusionner des tables
 
 La fusion de tables est une opération qui permet d'associer des lignes de deux DataFrames différents en se basant sur une ou plusieurs clés communes, similaire aux jointures dans les bases de données SQL.
 Différents types de jointure sont possible selon les données que l'on souhaite conserver, dont les principaux sont représentés sur le graphique suivant.
@@ -1437,9 +1441,9 @@ df_a.join(df_b, how="full", on='key')
 df_a.join(df_b, how="full", on='key', coalesce=True)
 ```
 
-## Exercices
+# Exercices
 
-### Questions de compréhension
+## Questions de compréhension
 
 
 - 1/ Qu'est-ce qu'un DataFrame dans le contexte de Polars et à quel type de structure de données peut-on le comparer dans le langage Python ?
@@ -1486,7 +1490,7 @@ df_a.join(df_b, how="full", on='key', coalesce=True)
 
 :::
 
-### Plusieurs manières de créer un DataFrame
+## Plusieurs manières de créer un DataFrame
 
 Dans la cellule suivante, nous avons récupéré des données de caisses sur les ventes de différentes enseignes. Les données sont cependant présentées de deux manières différentes, dans un cas sous forme d'observations (chaque liste contient les données d'une ligne), dans l'autre sous forme de variables (chaque liste contient les données d'une colonne).
 
@@ -1559,7 +1563,7 @@ df_from_dict.equals(df_from_list)
 
 :::
 
-### Sélection de données dans un DataFrame
+## Sélection de données dans un DataFrame
 
 Un DataFrame Pandas est créé avec des données de caisse (mêmes données que l'exercice précédent).
 
@@ -1739,11 +1743,11 @@ print(df.loc[df['date_heure'].dt.date == pd.to_datetime('2022-01-03').date()])
 
 :::
 
-### Exploration du fichier des prénoms
+## Exploration du fichier des prénoms
 
 Le fichier des prénoms contient des données sur les prénoms attribués aux enfants nés en France entre 1900 et 2021. Ces données sont disponibles au niveau France, par département et par région, à l'adresse suivante : [https://www.insee.fr/fr/statistiques/2540004?sommaire=4767262](https://www.insee.fr/fr/statistiques/2540004?sommaire=4767262). L'objectif de ce tutoriel est de proposer une analyse de ce fichier, du nettoyage des données au statistiques sur les prénoms.
 
-#### Partie 1 : Import et exploration des données
+### Partie 1 : Import et exploration des données
 
 
 - Importez les données dans un DataFrame en utilisant cette [URL](https://www.insee.fr/fr/statistiques/fichier/2540004/nat2021_csv.zip).
@@ -1774,7 +1778,7 @@ df_prenoms.info()
 
 :::
 
-#### Partie 2 : Nettoyage des données
+### Partie 2 : Nettoyage des données
 
 
 - L'output de la méthode `info()` suggère des valeurs manquantes dans la colonne des prénoms. Affichez ces lignes. Vérifiez que ces valeurs manquantes sont correctement spécifiées.
@@ -1884,7 +1888,7 @@ df_prenoms.info()
 
 :::
 
-#### Partie 3 : Statistiques descriptives sur les naissances
+### Partie 3 : Statistiques descriptives sur les naissances
 
 
 - La [documentation](https://www.insee.fr/fr/statistiques/2540004?sommaire=4767262#documentation) du fichier nous informe qu'on peut considérer les données comme quasi-exhaustives à partir de 1946. Pour cette partie seulement, filtrer les données pour ne conserver que les données ultérieures.
@@ -1949,7 +1953,7 @@ print(top5_years)
 
 :::
 
-#### Partie 4 : Analyse des prénoms
+### Partie 4 : Analyse des prénoms
 
 
 - Identifiez le nombre total de prénoms uniques dans le DataFrame.
@@ -2065,7 +2069,7 @@ popularite_par_decennie(df_prenoms, sexe=2)
 
 :::
 
-### Calcul d'une empreinte carbone par habitant au niveau communal
+## Calcul d'une empreinte carbone par habitant au niveau communal
 
 L'objectif de cet exercice est de calculer une empreinte carbone par habitant au niveau communal. Pour cela, il va falloir combiner deux sources de données :
 
@@ -2075,7 +2079,7 @@ L'objectif de cet exercice est de calculer une empreinte carbone par habitant au
 
 Cet exercice constitue une version simplifiée d'un [TP complet pour la pratique de Pandas](https://pythonds.linogaliana.fr/content/manipulation/02b_pandas_TP.html#importer-les-donn%C3%A9es) proposé par Lino Galiana dans son [cours à l'ENSAE](https://pythonds.linogaliana.fr/).
 
-#### Partie 1 : Exploration des données sur les populations légales communales
+### Partie 1 : Exploration des données sur les populations légales communales
 
 - Importez le fichier CSV `communes.csv`.
 - Utilisez les méthodes `.sample()`, `.info()` et `.describe()` pour obtenir un aperçu des données.
@@ -2151,7 +2155,7 @@ df_pop_communes_stats['longueur'].corr(df_pop_communes_stats['PTOT'])
 
 :::
 
-#### Partie 2 : Exploration des données sur les émissions communales
+### Partie 2 : Exploration des données sur les émissions communales
 
 - Importez les données d'émission depuis cette [URL](https://data.ademe.fr/data-fair/api/v1/datasets/igt-pouvoir-de-rechauffement-global/data-files/IGT%20-%20Pouvoir%20de%20r%C3%A9chauffement%20global.csv)
 - Utilisez les méthodes `.sample()`, `.info()` et `.describe()` pour obtenir un aperçu des données.
@@ -2267,7 +2271,7 @@ df_emissions.groupby("dep").agg({"emissions_totales": "sum"}).sort_values(by="em
 
 :::
 
-#### Partie 3 : Vérifications préalables pour la jointure des sources de données
+### Partie 3 : Vérifications préalables pour la jointure des sources de données
 
 Pour effectuer une jointure, il est toujours préférable d'avoir une clé de jointure, i.e. une colonne commune aux deux sources, qui identifie uniquement les unités statistiques. L'objet de cette partie est de trouver la clé de jointure pertinente.
 
@@ -2359,7 +2363,7 @@ df_emissions[~df_emissions["INSEE commune"].isin(df_pop_communes["DEPCOM"])]
 
 :::
 
-#### Partie 4 : Calcul d'une empreinte carbone par habitant pour chaque commune
+### Partie 4 : Calcul d'une empreinte carbone par habitant pour chaque commune
 
 - Joindre les deux DataFrames à l'aide de la fonction à partir du code commune. Attention : les variables ne s'appellent pas de la même manière des deux côtés !
 
@@ -2405,7 +2409,7 @@ df_emissions_pop.sort_values("empreinte_carbone", ascending=False).head(10)
 
 :::
 
-### Analyse de l'évolution d'un indice de production
+## Analyse de l'évolution d'un indice de production
 
 Vous avez à disposition dans le dossier `data/` deux jeux de données CSV :
 
@@ -2417,7 +2421,7 @@ L'objectif est d'utiliser `Pandas` pour calculer :
 - l'évolution de l'indice entre chaque période (mois)
 - l'évolution de l'indice en glissement annuel (entre un mois donné et le même mois l'année suivante).
 
-#### Partie 1 : Import des données
+### Partie 1 : Import des données
 
 - Importez les deux fichiers CSV dans des DataFrames. Attention, dans les deux cas, il y a des lignes superflues avant les données, qu'il faudra sauter à l'aide du paramètre `skiprows` de la fonction [read_csv()](https://pandas.pydata.org/docs/reference/api/pandas.read_csv.html).
 - Donnez des noms simples et pertinents aux différentes variables.
@@ -2443,7 +2447,7 @@ df_metadata = pd.read_csv('data/serie_glaces_metadonnees.csv', delimiter=';',
 
 :::
 
-#### Partie 2 : Filtrage des données pertinentes
+### Partie 2 : Filtrage des données pertinentes
 
 - Fusionner les deux DataFrames afin de récupérer la signification des codes présents dans les données.
 - Filtrer les données de sorte à ne conserver que les données de type "Valeur normale".
@@ -2470,7 +2474,7 @@ df_clean = df_clean[["periode", "indice"]]
 
 :::
 
-#### Partie 3 : Pré-traitement des données
+### Partie 3 : Pré-traitement des données
 
 Vérifiez si les types des variables sont pertinents selon leur nature. Sinon, convertissez-les avec les fonctions idoines.
 
@@ -2495,7 +2499,7 @@ df_clean.info()
 
 :::
 
-#### Partie 4 : Calcul de l'évolution périodique
+### Partie 4 : Calcul de l'évolution périodique
 
 - Utilisez la méthode [shift()](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.shift.html) pour créer une nouvelle colonne qui contiendra l'indice du trimestre précédent
 - Calculez la différence entre l'indice actuel et l'indice décalé pour obtenir l'évolution (en pourcentage) d'un trimestre à l'autre
@@ -2522,7 +2526,7 @@ df_clean['evo_alt'] = df_clean['indice'].pct_change(periods=1) * 100
 
 :::
 
-#### Partie 5 : Calcul de l'évolution glissante sur 12 mois
+### Partie 5 : Calcul de l'évolution glissante sur 12 mois
 
 Comme vous avez pu le voir dans la solution de l'exercice précédent, la méthode [pct_change()](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.pct_change.html) permet précisément de calculer une évolution entre deux périodes. Utiliser cette méthode pour calculer une évolution (en pourcentage) en glissement annuel pour chaque mois.
 
