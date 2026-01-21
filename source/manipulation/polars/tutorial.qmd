@@ -777,7 +777,7 @@ df.head()
 
 #### L'opération `group_by`
 
-La méthode `group_by` de Polars permet de diviser le DataFrame en sous-ensembles selon les valeurs d'une ou plusieurs colonnes, puis d'appliquer une fonction d'agrégation à chaque sous-ensemble. Elle renvoie un objet de type `DataFrameGroupBy` qui ne présente pas de grand intérêt en soi, mais constitue l'étape intermédiaire indispensable pour pouvoir ensuite appliquer une ou plusieurs fonction(s) d'agrégation aux différents groupes.
+La méthode `group_by` de Polars permet de diviser le DataFrame en sous-ensembles selon les valeurs d'une ou plusieurs colonnes, puis d'appliquer une fonction d'agrégation à chaque sous-ensemble. Elle renvoie un objet de type `dataframe.group_by` qui ne présente pas de grand intérêt en soi, mais constitue l'étape intermédiaire indispensable pour pouvoir ensuite appliquer une ou plusieurs fonction(s) d'agrégation aux différents groupes.
 
 ```{python}
 df.group_by('experiment')
@@ -785,38 +785,80 @@ df.group_by('experiment')
 
 #### Fonctions d'agrégation
 
-Une fois les données groupées, on peut appliquer des fonctions d'agrégation pour obtenir un résumé statistique. Pandas intègre un certain nombre de ces fonctions, dont la liste complète est détaillée dans la [documentation](https://pandas.pydata.org/docs/user_guide/groupby.html#built-in-aggregation-methods). Voici quelques exemples d'utilisation de ces méthodes.
+Une fois les données groupées, on peut appliquer des fonctions d'agrégation pour obtenir un résumé statistique. Polars intègre un certain nombre de ces fonctions qui  fonctionnent sur la table de donnée entière, *cf.* [liste complète dans la documentation](https://docs.pola.rs/api/python/stable/reference/dataframe/aggregation.html) ou sur des sous-ensembles de la table, en utilisant `group_by`, *cf.* [liste complète dans la documentation](https://docs.pola.rs/api/python/stable/reference/dataframe/group_by.html).
 
-Par exemple, compter le nombre d'occurrences dans chaque groupe.
 
-```{python}
-df.groupby('experiment').size()
-```
+Voici quelques exemples d'utilisation de ces méthodes avec `group_by`.
 
-Calculer la somme d'une variable par groupe.
+Par défaut, Polars appliquera les fonctions usuelles à l'ensemble des colonnes.
+Pour spécifier une colonne, il faut utiliser la fonction `agg`, détaillée plus bas.
 
-```{python}
-df.groupby('experiment')['var1'].sum()
-```
-
-Ou encore compter le nombre de valeurs unique d'une variable par groupe. Les possibilités sont nombreuses.
+- Par exemple, compter le nombre d'occurrences dans chaque groupe.
 
 ```{python}
-# Pour le nombre de valeurs uniques de 'var2' dans chaque groupe
-df.groupby('experiment')['var2'].nunique()
+df.group_by('experiment').count()
 ```
 
-Lorsqu'on souhaite appliquer plusieurs fonctions d'agrégation à la fois ou des fonctions personnalisées, on utilise la méthode `agg`. Cette méthode accepte une liste de fonctions ou un dictionnaire qui associe les noms des colonnes aux fonctions à appliquer. Cela permet d'appliquer plus finement les fonctions d'agrégation.
+- Calculer la somme d'une variable par groupe.
 
 ```{python}
-df.groupby('experiment').agg({'var1': 'mean', 'var2': 'count'})
+df.group_by('experiment').agg(pl.col('var2').sum())
 ```
+
+::: {.callout-tip}
+Polars a aussi introduit des wrappers utiles pour les fonctions principales d'aggregation sum, std, count, quantile, cum_count, cum_sum, max, min, median, sqrt.
+
+Pour ces fonctions, on peut les appeler directement en faisant `pl.sum('var2')` et non `pl.col('var2').sum()`.
+
+Par exemple :
+```{.python}
+df.group_by('experiment').agg(pl.sum('var2'))
+```
+
+est identique à :
+```{.python}
+df.group_by('experiment').agg(pl.col('var2').sum())
+```
+
+:::
+
+- Ou encore compter le nombre de valeurs unique d'une variable par groupe. Les possibilités sont nombreuses.
+
+```{python}
+# Pour le nombre de valeurs uniques dans chaque groupe
+df.group_by('experiment').agg(pl.col('var2').n_unique())
+```
+
+Lorsqu'on souhaite appliquer plusieurs fonctions d'agrégation à la fois ou des fonctions personnalisées, on utilise la méthode `agg`. Cette méthode fonctionne selon une structure similaire à `with_columns`. Elle permet de définir plus finement les fonctions d'agrégation.
+
+```{python}
+df.group_by('experiment').agg(
+    pl.col('var1').mean().alias('mean_var1'),
+    pl.col('var2').count().alias('count_var2')
+)
+```
+
+::: {.callout-tip}
+Au lieu d'utiliser la méthode alias, on peut utiliser l'attribut `name` de Polars qui renvoie le nom de la colonne et les fonctions associées. Plus de détails sont présentés dans la [documentation officielle](https://docs.pola.rs/api/python/stable/reference/expressions/name.html).
+
+Par exemple, définir `.alias('mean_var1')` est l'équivalent de `.name.prefix('mean_')`
+:::
 
 ::: {.callout-note title="Le chaînage de méthodes"}
-Les exemples précédents illustrent un concept important en Pandas : le chaînage de méthodes. Ce terme désigne la possibilité d'enchaîner les transformations appliquées à un DataFrame en lui appliquant à la chaîne des méthodes. A chaque méthode appliquée, un DataFrame intermédiaire est créé (mais non assigné à une variable), qui devient l'input de la méthode suivante.
+Les exemples précédents illustrent un concept important en Polars : le chaînage de méthodes. Ce terme désigne la possibilité d'enchaîner les transformations appliquées à un DataFrame en lui appliquant à la chaîne des méthodes, comme le `pipe` du tidyverse. A chaque méthode appliquée, un DataFrame intermédiaire est créé (mais non assigné à une variable), qui devient l'input de la méthode suivante.
 
 Le chaînage de méthodes permet de combiner plusieurs opérations en une seule expression de code. Cela peut améliorer l'efficacité en évitant les assignations intermédiaires et en rendant le code plus fluide et plus facile à lire.
 Cela favorise également un style de programmation fonctionnel où les données passent à travers une chaîne de transformations de manière fluide.
+
+```{.python}
+subset_df = (
+    df
+    .filter(pl.col('sample') == "sample1", pl.col("date") >= '2022-01-02')
+    .drop('sample')
+    .glimpse()
+)
+```
+
 :::
 
 ### Traiter les valeurs manquantes
