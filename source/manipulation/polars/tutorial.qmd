@@ -762,9 +762,9 @@ df.sort(by=['var1', 'var2'], descending=[True, True])
 L'agrégation des données est un processus dans lequel les données vont être ventilées en groupes selon certains critères, puis agrégées selon une fonction d'agrégation appliquée indépendamment à chaque groupe. Cette opération est courante lors de l'analyse exploratoire ou lors du prétraitement des données pour la visualisation ou la modélisation statistique.
 
 ```{python}
-df = pd.DataFrame(
+df = pl.DataFrame(
     data = {
-        "var1": [1.3, 5.6, np.nan, np.nan, 0, np.nan],
+        "var1": [1.3, 5.6, None, None, 0, None],
         "var2": np.random.randint(-10, 10, 6),
         "experiment": ["test", "train", "test", "train", "train", "validation"],
         "date": ["2022-01-01", "2022-01-02", "2022-01-03", "2022-01-04", "2022-01-05", "2022-01-06"],
@@ -775,12 +775,12 @@ df = pd.DataFrame(
 df.head()
 ```
 
-#### L'opération `groupBy`
+#### L'opération `group_by`
 
-La méthode `groupBy` de Pandas permet de diviser le DataFrame en sous-ensembles selon les valeurs d'une ou plusieurs colonnes, puis d'appliquer une fonction d'agrégation à chaque sous-ensemble. Elle renvoie un objet de type `DataFrameGroupBy` qui ne présente pas de grand intérêt en soi, mais constitue l'étape intermédiaire indispensable pour pouvoir ensuite appliquer une ou plusieurs fonction(s) d'agrégation aux différents groupes.
+La méthode `group_by` de Polars permet de diviser le DataFrame en sous-ensembles selon les valeurs d'une ou plusieurs colonnes, puis d'appliquer une fonction d'agrégation à chaque sous-ensemble. Elle renvoie un objet de type `DataFrameGroupBy` qui ne présente pas de grand intérêt en soi, mais constitue l'étape intermédiaire indispensable pour pouvoir ensuite appliquer une ou plusieurs fonction(s) d'agrégation aux différents groupes.
 
 ```{python}
-df.groupby('experiment')
+df.group_by('experiment')
 ```
 
 #### Fonctions d'agrégation
@@ -921,7 +921,7 @@ Les données textuelles nécessitent souvent un nettoyage et une préparation av
 ```{python}
 df = pd.DataFrame(
     data = {
-        "var1": [1.3, 5.6, np.nan, np.nan, 0, np.nan],
+        "var1": [1.3, 5.6, None, None, 0, None],
         "var2": np.random.randint(-10, 10, 6),
         "experiment": ["test", "train", "test", "test", "train", "validation"],
         "sample": ["  sample1", "sample1", "sample2", "   sample2   ", "sample2  ", "sample1"]
@@ -971,7 +971,7 @@ Pour convertir une variable au format `category`, on utilise la méthode `astype
 ```{python}
 df = pd.DataFrame(
     data = {
-        "var1": [1.3, 5.6, np.nan, np.nan, 0, np.nan],
+        "var1": [1.3, 5.6, None, None, 0, None],
         "var2": np.random.randint(-10, 10, 6),
         "experiment": ["test", "train", "test", None, "train", "validation"],
     }
@@ -1516,7 +1516,7 @@ df_prenoms.info()
 print(df_prenoms[df_prenoms["preusuel"].isna()])
 prop_rares = df_prenoms.groupby("preusuel")["nombre"].sum()["_PRENOMS_RARES"] / df_prenoms["nombre"].sum()
 print(prop_rares)  # ~ 2 % de la base
-df_prenoms = df_prenoms.replace('_PRENOMS_RARES', np.nan)
+df_prenoms = df_prenoms.replace('_PRENOMS_RARES', None)
 ```
 
 </details>
@@ -1538,7 +1538,7 @@ df_prenoms = df_prenoms.replace('_PRENOMS_RARES', np.nan)
 ```{python}
 prop_xxxx = df_prenoms.groupby("annais")["nombre"].sum()["XXXX"] / df_prenoms["nombre"].sum()
 print(prop_xxxx)  # ~ 1 % de la base
-df_prenoms = df_prenoms.replace('XXXX', np.nan)
+df_prenoms = df_prenoms.replace('XXXX', None)
 ```
 
 </details>
@@ -2349,7 +2349,7 @@ A DataFrame can be constructed in multiple ways. In practice, we generally build
 ```{python}
 df = pd.DataFrame(
     data = {
-        "var1": [1.3, 5.6, np.nan, np.nan, 0, np.nan],
+        "var1": [1.3, 5.6, None, np.nan, 0, np.nan],
         "var2": np.random.randint(-10, 10, 6),
         "experiment": ["test", "train", "test", "train", "train", "validation"],
         "date": ["2022-01-01", "2022-01-02", "2022-01-03", "2022-01-04", "2022-01-05", "2022-01-06"],
@@ -2573,7 +2573,7 @@ One of the major strengths of the Parquet format, compared to text formats like 
 ```{python}
 df = pd.DataFrame(
     data = {
-        "var1": [1.3, 5.6, np.nan, np.nan, 0, np.nan],
+        "var1": [1.3, 5.6, None, None, 0, None],
         "var2": np.random.randint(-10, 10, 6),
         "experiment": ["test", "train", "test", "train", "train", "validation"],
         "date": ["2022-01-01", "2022-01-02", "2022-01-03", "2022-01-04", "2022-01-05", "2022-01-06"],
@@ -2690,7 +2690,7 @@ For example, raising each numeric value in a DataFrame to the power of 2:
 ```{python}
 df = pd.DataFrame(
     data = {
-        "var1": [1.3, 5.6, np.nan, np.nan, 0, np.nan],
+        "var1": [1.3, 5.6, None, None, 0, None],
         "var2": np.random.randint(-10, 10, 6),
     }
 )
@@ -2707,20 +2707,20 @@ np.abs(df)
 Some methods available for `Series` can also be used to transform an entire DataFrame. For example, the very useful [replace()](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.replace.html) method, which allows replacing all occurrences of a given value with another value. For example, suppose the value 0 in the `var1` column actually indicates a measurement error. It would be preferable to replace it with a missing value.
 
 ```{python}
-df.replace(0, np.nan)
+df.replace(0, None)
 ```
 
 ::: {.callout-warning title="Assignment or in-place methods?"}
 In the previous example, applying the [replace()](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.replace.html) method does not directly modify the DataFrame. To make the modification persistent, one possibility is to assign the result to an object:
 
 ```{python}
-df = df.replace(0, np.nan)
+df = df.replace(0, None)
 ```
 
 A second possibility is, when methods offer it, to use the `inplace` argument. When `inplace=True`, the operation is performed "in place", and the DataFrame is therefore directly modified.
 
 ```{python}
-df.replace(0, np.nan, inplace=True)
+df.replace(0, None, inplace=True)
 ```
 
 In practice, it is better to limit `inplace` operations. They do not favor the reproducibility of analyses, as the re-execution of the same cell will give different results each time.
@@ -2733,7 +2733,7 @@ In some cases, we will not want to apply transformations to the entire data but 
 ```{python}
 df = pd.DataFrame(
     data = {
-        "var1": [1.3, 5.6, np.nan, np.nan, 0, np.nan],
+        "var1": [1.3, 5.6, None, None, 0, None],
         "var2": np.random.randint(-10, 10, 6),
     }
 )
@@ -2742,7 +2742,7 @@ np.abs(df["var2"])
 ```
 
 ```{python}
-df["var1"].replace(0, np.nan)
+df["var1"].replace(0, None)
 ```
 
 But there are other transformations that are generally applied at the level of one or a few columns. For example, when the schema has not been properly recognized upon import, it may happen that numeric variables are defined as strings (type `object` in Pandas).
@@ -2750,7 +2750,7 @@ But there are other transformations that are generally applied at the level of o
 ```{python}
 df = pd.DataFrame(
     data = {
-        "var1": [1.3, 5.6, np.nan],
+        "var1": [1.3, 5.6, None],
         "var2": ["1", "5", "18"],
     }
 )
@@ -2877,7 +2877,7 @@ Aggregating data is a process where the data is broken down into groups based on
 ```{python}
 df = pd.DataFrame(
     data = {
-        "var1": [1.3, 5.6, np.nan, np.nan, 0, np.nan],
+        "var1": [1.3, 5.6, None, None, 0, None],
         "var2": np.random.randint(-10, 10, 6),
         "experiment": ["test", "train", "test", "train", "train", "validation"],
         "date": ["2022-01-01", "2022-01-02", "2022-01-03", "2022-01-04", "2022-01-05", "2022-01-06"],
