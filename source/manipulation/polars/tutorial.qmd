@@ -697,30 +697,41 @@ df.rename({'var2': 'age'})
 
 #### Fonctions complexes
 
-Néanmoins, on peut se retrouver dans certains (rares) cas où une opération ne peut pas être facilement vectorisée ou où la logique est complexe. Supposons par exemple que l'on souhaite combiner les valeurs de plusieurs colonnes en fonction de certaines conditions.
+Néanmoins, on peut se retrouver dans certains (rares) cas où une opération ne peut pas être facilement vectorisée ou où la logique est complexe.
+Supposons par exemple que l'on souhaite calculer la variation annuelle du PIB par pays dans une table comportant les pays et les années.
 
 ```{python}
-def combine_columns(row):
-    if row['var1'] > 6:
-        return str(row['var2'])
-    else:
-        return str(row['var2']) + "_" + row['date']
+# Données fictives de PIB par pays
+df = pl.DataFrame({
+    'country': ['France', 'France', 'France', 'Germany', 'Germany', 'Germany', 'UK', 'UK', 'UK'],
+    'year': [2019, 2020, 2021, 2019, 2020, 2021, 2019, 2020, 2021],
+    'gdp': [21.43, 20.21, 22.54, 1.73, 1.66, 1.78, 2.83, 2.71, 2.99]
+})
 
-df['combined_column'] = df.apply(combine_columns, axis=1)
+# On définit une fonction dite User-defined-function (UDF) pour calculer la croissance par pays
+def calculate_percentage_change(group):
+    group = group.sort('year')
+    group = group.with_columns(
+        ((pl.col('gdp') - pl.col('gdp').shift(1)) / pl.col('gdp').shift(1) * 100).alias('percentage_change')
+    )
+    return group
 
-df
+# On applique la fonction en utilisant map_groups
+print(df.group_by('country').map_groups(calculate_percentage_change))
+
 ```
+
 
 ### Trier les valeurs
 
-Le tri des données est particulièrement utile pour l'exploration et la visualisation de données. Avec Pandas, on utilise la méthode [sort_values()](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.sort_values.html) pour trier les valeurs d'un DataFrame selon une ou plusieurs colonnes.
+Le tri des données est particulièrement utile pour l'exploration et la visualisation de données. Avec Polars, on utilise la méthode [sort()](https://docs.pola.rs/api/python/stable/reference/dataframe/api/polars.DataFrame.sort.html#polars.DataFrame.sort) pour trier les valeurs d'un DataFrame selon une ou plusieurs colonnes.
 
 ```{python}
-df = pd.DataFrame(
+df = pl.DataFrame(
     data = {
-        "var1": [1, 5, 9, 13],
-        "var2": [3, 7, 11, 15],
-        "date": ["2022-01-01", "2022-01-02", "2022-01-03", "2022-01-04"],
+        "var1": [1, 9, 9, 14, 13],
+        "var2": [3, 7, 11, 15, 4],
+        "date": ["2022-01-01", "2022-01-02", "2022-01-03", "2022-01-04", "2022-04-02"],
     }
 )
 
@@ -730,17 +741,20 @@ df
 Pour trier les valeurs selon une seule colonne, il suffit de passer le nom de la colonne en paramètre.
 
 ```{python}
-df.sort_values(by='var1')
+df.sort(by='var1')
 ```
 
-Par défaut, le tri est effectué dans l'ordre croissant. Pour trier les valeurs dans un ordre décroissant, il suffit de paramétrer `ascending=False`.
+Par défaut, le tri est effectué dans l'ordre croissant. Pour trier les valeurs dans un ordre décroissant, il suffit de paramétrer `descending=True`.
 
 ```{python}
-df.sort_values(by='var1', ascending=False)
+df.sort(by='var1', descending=True)
 ```
 
-Si on souhaite trier le DataFrame sur plusieurs colonnes, on peut fournir une liste de noms de colonnes. On peut également choisir de trier de manière croissante pour certaines colonnes et décroissante pour d'autres.
+Si on souhaite trier le DataFrame sur plusieurs colonnes, on peut fournir une liste de noms de colonnes. On peut également choisir de trier de manière croissante pour certaines colonnes et décroissante pour d'autres en spécifiant les booléns dans une liste.
 
+```{python}
+df.sort(by=['var1', 'var2'], descending=[True, True])
+```
 
 
 ### Agréger des données
