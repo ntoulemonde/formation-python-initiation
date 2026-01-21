@@ -934,31 +934,45 @@ df.drop_nulls(['var1'])
 
 #### Remplacement des valeurs manquantes
 
-Pour gérer les valeurs manquantes dans un DataFrame, une approche commune est l'imputation, qui consiste à remplacer les valeurs manquantes par d'autres valeurs. La méthode `fillna()` permet d'effectuer cette opération de différentes manières. Une première possibilité est le remplacement par une valeur constante.
+Pour gérer les valeurs manquantes dans un DataFrame, une approche commune est l'imputation, qui consiste à remplacer les valeurs manquantes par d'autres valeurs. La méthode [`fill_null()`](https://docs.pola.rs/api/python/stable/reference/dataframe/api/polars.DataFrame.fill_null.html) permet d'effectuer cette opération de différentes manières dans toute la table de donnée.
+
+- Une première possibilité est le remplacement par une valeur constante.
 
 ```{python}
-df['var1'].fillna(value=0)
+df.fill_null(value=0)
 ```
 
 ::: {.callout-warning title="Changement de représentation des valeurs manquantes"}
 Il peut parfois être tentant de changer la manifestation d'une valeur manquante pour des raisons de visibilité, par exemple en la remplaçant par une chaîne de caractères :
 
 ```{python}
-df['var1'].fillna(value="MISSING")
+df.fill_null(value="MISSING")
 ```
 
-En pratique, cette façon de faire n'est pas recommandée. Il est en effet préférable de conserver la convention standard de `Pandas` (l'utilisation des `np.nan`), d'abord pour des questions de standardisation des pratiques qui facilitent la lecture et la maintenance du code, mais également parce que la convention standard est optimisée pour la performance et les calculs à partir de données contenant des valeurs manquantes.
+En pratique, cette façon de faire n'est pas recommandée. Il est en effet préférable de conserver la convention standard de `Polars` (l'utilisation des `null`), d'abord pour des questions de standardisation des pratiques qui facilitent la lecture et la maintenance du code, mais également parce que la convention standard est optimisée pour la performance et les calculs à partir de données contenant des valeurs manquantes.
 :::
 
-Une autre méthode d'imputation fréquente est d'utiliser une valeur statistique, comme la moyenne ou la médiane de la variable.
+La méthide `fill_null()` de Polars propose 4 méthodes pré-définies pour remplacer les valeurs manquantes par l'argument `strategy`:
+- toute valeur constante indiquée (`strategy=None`, argument par défaut);
+- soit des 0, soit des 1 (`strategy="zero"`, `strategy="one"` :);
+- en reportant la valeur précédente (`strategy=‘forward’`) ou la valeur suivante (`strategy=‘backward’`) de la colonne ;
+- en indiquant le minimum, le maximum ou la médiane de la colonne (`strategy=‘min’`, `strategy=‘max’`, `strategy=‘mean’`).
+
+Si l'on veut remplacer uniquement les valeurs manquantantes d'une colonne en Polars, il est plus utile d'utiliser la méthode `with_columns()` en utilisant l'agilité des sélecteurs de Polars.
 
 ```{python}
-df['var1'].fillna(value=df['var1'].mean())
+df.with_columns(
+    pl.col(pl.NUMERIC_DTYPES).fill_null(strategy="mean")
+)
 ```
+
+"TO DO" les sélecteurs dans Polars
 
 ::: {.callout-warning title="Biais d'imputation"}
 Remplacer les valeurs manquantes par une valeur constante, telle que zéro, la moyenne ou la médiane, peut être problématique. Si les données ne sont pas manquantes au hasard (*Missing Not At Random* - *MNAR*), cela peut introduire un biais dans l'analyse. Les variables *MNAR* sont des variables dont la probabilité d'être manquantes est liée à leur propre valeur ou à d'autres variables dans les données. Dans de tels cas, une imputation plus sophistiquée peut être nécessaire pour minimiser les distorsions. Nous en verrons un exemple en exercice de fin de tutoriel.
 :::
+
+De manière similaire, la méthode `fill_nan()` permet de remplacer les valeurs numériques NaN par toute valeur indiquée.
 
 ### Traiter les données de types spécifiques
 
