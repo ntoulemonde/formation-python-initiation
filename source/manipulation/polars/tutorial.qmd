@@ -158,7 +158,6 @@ Parler de :
 - pas d'index.
 - polars selectors
 - lazy eval
-- unnest
 
 "TO DO" - Polars Séries
 
@@ -259,6 +258,15 @@ A noter qu'une valeur manquante est indiquée par `None` en Polars. Elle sera en
 Un DataFrame Polars dispose d'un ensemble d'attributs utiles que nous allons découvrir tout au long de ce tutoriel. Pour l'instant, intéressons-nous aux plus basiques : le nom des colonnes.
 
 ```{python}
+df = pl.DataFrame(
+    data = {
+        "var1": [1.3, 5.6, None, None, 0, None],
+        "experiment": ["test", "train", "test", "train", "train", "validation"],
+        "date": ["2022-01-01", "2022-01-02", "2022-01-03", "2022-01-04", "2022-01-05", "2022-01-06"],
+        "sample": "sample1"
+    }, strict=False
+)
+
 df.columns
 ```
 
@@ -452,6 +460,7 @@ A la différence de Pandas et à la date d'écriture de ce tutoriel, Polars ne c
 Soit on utilise la fonction idoine de `pandas` et après on transforme le dataframe en `polars` facilement grâce à la fonction `pl.from_pandas`.
 
 ```{python}
+import pandas as pd
 url = "https://www.insee.fr/fr/statistiques/fichier/2540004/nat2021_csv.zip"
 pl.from_pandas(pd.read_csv(url, delimiter=";"))
 ```
@@ -460,6 +469,8 @@ Si l'on veut éviter une dépendance à `pandas` juste pour cette opération, il
 Prenons l'exemple d'un fichier CSV disponible sur le site de l'INSEE : le fichier des prénoms, issu des données de l'état civil.
 
 ```{python}
+import requests
+
 # Téléchargement et stockage du nom du fichier
 url = "https://www.insee.fr/fr/statistiques/fichier/2540004/nat2021_csv.zip"
 file_Path = url.split('/')[-1]
@@ -483,14 +494,15 @@ En regardant le message d'erreur, Polars traite la colonne `anais` comme un enti
 Mais la lecture de la valeur `XXXX` cause une erreur et n'est pas convertible en entier par Polars.
 
 ```{python}
-df_prenoms_url = pl.read_csv('temp/'+os.listdir('temp')[0], separator=";")
+import os
+df_prenoms_url = pl.read_csv('temp/' + os.listdir('temp')[0], separator=";")
 ```
 
 Dans ce cas, deux solutions existent :
 - On peut dire à Polars de traiter toutes les colonnes comme des caractères avec infer_schema=False
 
 ```{python}
-df_prenoms_url = pl.read_csv('temp/'+os.listdir('temp')[0], separator=";", infer_schema=False)
+df_prenoms_url = pl.read_csv('temp/' + os.listdir('temp')[0], separator=";", infer_schema=False)
 df_prenoms_url
 ```
 
@@ -629,25 +641,29 @@ On retrouve dans le DataFrame les trois colonnes dont la clé représente le nom
 La première et dernière colonnes sont des valeurs constantes au format `pl.String` et les résultats sont stockés dans la colonne `features`.
 Cette dernière est au format `pl.Struct`, qui fonctionne de manière similaire à un dictionnaire.
 
-On peut facilement récupérer le détail des résultats grâce à la méthode `unnest` :
+::: {.callout-tip}
+La méthode `unnest` est **très pratique** en travaillant avec des formats JSON.
+Elle permet facilement de passer d'un format structuré à un format plus standard (numérique ou textuel).
+Ainsi, pour récupérer le détail des résultats de l'appel à l'API, il suffit d'utiliser la méthode `unnest`.
+On l'applique à plusieurs reprises et on veille à supprimer les colonnes  intermédiaires qui ont des noms identiques pour *applatir* le data frame:
 
 ```{python}
-df = df.select("features").unnest("features")
-df
+df = df.select("features").unnest("features").drop('type').unnest('geometry').drop('type').unnest('properties')
 ```
+:::
+
 
 ### Autres exports et imports
 
 - **Exporter vers un dictionnaire**:
-
 De manière similaire, Polars permet d'exporter un DataFrame vers un dictionnaire.
 
-    - La méthode `to_dict` permet d'exporter un DataFrame "en format colonne".
-    L'export sera un seul dictionnaire dont les clés sont les noms des colonnes et
-    les valeurs les listes des valeurs prises par colonne `{'a':[1, 2, 3], 'b': [3, 2, 1]}`.
-    - La méthode `to_dicts`permet d'exporter le DataFrame "en format ligne".
-    L'export sera une liste dont les termes seront les lignes du DataFrame,
-    représentées à chaque fois par un dictionnaire : `[{'a': 1, 'b': 3}, {'a': 2, 'b': 2}, {'a': 3, 'b': 1}]`
+  - La méthode `to_dict` permet d'exporter un DataFrame "en format colonne".
+L'export sera un seul dictionnaire dont les clés sont les noms des colonnes et
+les valeurs les listes des valeurs prises par colonne `{'a':[1, 2, 3], 'b': [3, 2, 1]}`.
+  - La méthode `to_dicts`permet d'exporter le DataFrame "en format ligne".
+L'export sera une liste dont les termes seront les lignes du DataFrame,
+représentées à chaque fois par un dictionnaire : `[{'a': 1, 'b': 3}, {'a': 2, 'b': 2}, {'a': 3, 'b': 1}]`
 
 - **Depuis/vers Pandas**:
 Polars permet aussi facilement d'exporter et d'importer des DataFrame au format Pandas.
